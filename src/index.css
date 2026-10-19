@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* የቴሌግራም ዳርክ ሞድ አፑን ጥቁር እንዳያደርገው ማስገደጃ */
+body {
+  background-color: #f3f4f6 !important; /* ግራጫማ ቆንጆ ዳራ */
+  color: #111827 !important;            /* የጽሁፍ ከለር ጥቁር */
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
