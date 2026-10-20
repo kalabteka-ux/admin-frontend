@@ -7,7 +7,7 @@ export default function App() {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
-  const [selectedIdImage, setSelectedIdImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const fetchAdminData = async () => {
     try {
@@ -76,7 +76,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight">EOTC Market — Super Admin Dashboard</h1>
-            <p className="text-xs text-gray-400">Username KYC Verification, Products & Escrow Control</p>
+            <p className="text-xs text-gray-400">Vendor KYC (Front & Back ID Verification), Products & Escrow Control</p>
           </div>
         </div>
 
@@ -93,7 +93,7 @@ export default function App() {
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-wrap gap-3 border-b border-white/10 pb-3">
           <button onClick={() => setActiveTab('vendors')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'vendors' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
-            🪪 1. የነጋዴዎች Username KYC ({vendors.length})
+            🪪 1. የነጋዴዎች KYC (ፊት እና ኋላ) ({vendors.length})
           </button>
           <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'products' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
             📦 2. የእቃዎች ዝርዝር ({products.length})
@@ -103,7 +103,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* TAB 1: VENDOR KYC */}
+        {/* TAB 1: VENDOR KYC WITH FRONT & BACK ID */}
         {activeTab === 'vendors' && (
           <div className="space-y-4">
             {vendors.length === 0 ? (
@@ -113,11 +113,11 @@ export default function App() {
             ) : (
               vendors.map(v => (
                 <div key={v.id} className="bg-[#1E232B] p-6 rounded-3xl border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
-                  <div className="space-y-2 flex-1">
+                  <div className="space-y-3 flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
                       <h3 className="text-base font-bold text-white">🏪 {v.store_name}</h3>
                       <span className="text-xs bg-[#2C221E] text-[#FB923C] font-bold px-3 py-1 rounded-full border border-orange-500/30">
-                        👤 Telegram Username: @{v.username}
+                        👤 Username: @{v.username}
                       </span>
                     </div>
 
@@ -125,12 +125,20 @@ export default function App() {
                       📞 <strong>ስልክ፦</strong> {v.phone} &nbsp;|&nbsp; 🏦 <strong>አካውንት፦</strong> <code className="text-orange-300">{v.account}</code>
                     </p>
 
-                    {v.id_front_image && (
-                      <div className="pt-2">
-                        <p className="text-xs text-[#FB923C] font-semibold mb-1">🪪 የተላከው መታወቂያ ፎቶ (ለማጉላት ይጫኑ)፦</p>
-                        <img onClick={() => setSelectedIdImage(v.id_front_image)} src={v.id_front_image} alt="ID" className="h-32 w-48 rounded-2xl border-2 border-orange-500/30 object-cover cursor-pointer hover:scale-105 transition shadow-md" />
-                      </div>
-                    )}
+                    <div className="pt-1 flex flex-wrap gap-4">
+                      {v.id_front_image && (
+                        <div>
+                          <p className="text-[11px] text-[#FB923C] font-semibold mb-1">🪪 መታወቂያ ፊት (Front)</p>
+                          <img onClick={() => setSelectedImage(v.id_front_image)} src={v.id_front_image} alt="ID Front" className="h-28 w-44 rounded-xl border border-orange-500/30 object-cover cursor-pointer hover:scale-105 transition shadow" />
+                        </div>
+                      )}
+                      {v.id_back_image && (
+                        <div>
+                          <p className="text-[11px] text-[#FB923C] font-semibold mb-1">🪪 መታወቂያ ኋላ (Back)</p>
+                          <img onClick={() => setSelectedImage(v.id_back_image)} src={v.id_back_image} alt="ID Back" className="h-28 w-44 rounded-xl border border-orange-500/30 object-cover cursor-pointer hover:scale-105 transition shadow" />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex flex-col items-end gap-3 w-full md:w-auto">
@@ -205,10 +213,10 @@ export default function App() {
         )}
       </div>
 
-      {selectedIdImage && (
-        <div onClick={() => setSelectedIdImage(null)} className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer">
+      {selectedImage && (
+        <div onClick={() => setSelectedImage(null)} className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer">
           <div className="max-w-2xl w-full text-center space-y-2">
-            <img src={selectedIdImage} alt="" className="w-full max-h-[80vh] object-contain rounded-2xl border border-white/20" />
+            <img src={selectedImage} alt="Zoomed ID" className="w-full max-h-[80vh] object-contain rounded-2xl border border-white/20" />
             <p className="text-xs text-gray-300">ለመዝጋት እዚህ ላይ ይጫኑ</p>
           </div>
         </div>
