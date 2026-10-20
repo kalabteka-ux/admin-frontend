@@ -21,7 +21,7 @@ export default function App() {
     category: 'መጽሐፍት',
     condition: 'አዲስ',
     city: 'አዲስ አበባ',
-    location: 'ቦሌ',
+    location: '',
     delivery_fee: '0',
     quantity: '1',
     image1: '',
@@ -46,7 +46,6 @@ export default function App() {
         setServerStatus('online');
         const vData = await vRes.json();
         if (Array.isArray(vData)) {
-          // 🛠️ የቴሌብር እና የ CBE አካውንቶች እንዳይቀላቀሉ በግልጽ መለያየት
           const cleanedVendors = vData.map((v: any) => {
             const rawAccount = v.account || '';
             const isTelebirr = rawAccount.startsWith('09') || rawAccount.startsWith('07') || rawAccount.length === 10;
@@ -178,11 +177,16 @@ export default function App() {
     try { await fetch(`${API_BASE_URL}/products/${id}`, { method: 'DELETE' }); } catch {}
   };
 
+  // 🚀 ሻጩ ሁሉንም ፎርሞች (ስም፣ ዋጋ፣ ከተማ፣ ቦታ እና ፎቶ) መሙላቱን ማረጋገጫ (Validation)
   const handleAdminPublishProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProd.name || !newProd.price || !newProd.city || !newProd.location) {
-      return alert("⚠️ እባክዎ የእቃውን ስም፣ ዋጋ፣ ከተማ እና አድራሻ ይሙሉ!");
+    if (!newProd.name.trim() || !newProd.price || !newProd.city.trim() || !newProd.location.trim()) {
+      return alert("⚠️ እባክዎ የእቃውን ስም፣ ዋጋ፣ የሚሸጥበትን ከተማ እና ልዩ አድራሻ (ቦታ) በግዴታ ይሙሉ!");
     }
+    if (!newProd.image1 && !newProd.image2 && !newProd.image3) {
+      return alert("⚠️ እባክዎ ቢያንስ አንድ የእቃ ፎቶ (ካሜራ ወይም ጋለሪ በመጠቀም) ያስገቡ!");
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/products`, {
         method: 'POST',
@@ -200,7 +204,7 @@ export default function App() {
           category: 'መጽሐፍት',
           condition: 'አዲስ',
           city: 'አዲስ አበባ',
-          location: 'ቦሌ',
+          location: '',
           delivery_fee: '0',
           quantity: '1',
           image1: '',
@@ -254,7 +258,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight">EOTC Market — Super Admin Dashboard</h1>
-            <p className="text-xs text-gray-400">Vendor KYC & Telebirr/Bank Fix Dashboard</p>
+            <p className="text-xs text-gray-400">Mandatory Product Publisher & Vendor KYC Management</p>
           </div>
         </div>
 
@@ -274,7 +278,7 @@ export default function App() {
             🪪 1. የሻጮች KYC እና የባንክ መረጃ ({vendors.length})
           </button>
           <button onClick={() => setActiveTab('publish')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'publish' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
-            ➕ 2. እቃ/መጽሐፍ መጫኛ
+            ➕ 2. እቃ/መጽሐፍ መጫኛ (Mandatory)
           </button>
           <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'products' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
             📦 3. የእቃዎች ዝርዝር ({products.length})
@@ -284,7 +288,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* TAB 1: VENDORS KYC & BANK INFO DISPLAY */}
+        {/* TAB 1: VENDORS KYC */}
         {activeTab === 'vendors' && (
           <div className="space-y-4">
             {vendors.length === 0 ? (
@@ -313,7 +317,6 @@ export default function App() {
                       <p>🏦 <strong>አቢሲኒያ (Abyssinia):</strong> <code className="text-orange-300">{v.abyssinia_account || 'አልተመዘገበም'}</code></p>
                     </div>
 
-                    {/* 📸 የመታወቂያ ፎቶዎች (ጥቁር እንዳይሆን ከነጭ/ግራጫ መደብ እና object-contain ጋር የተስተካከለ) */}
                     <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-[#161A20] p-3 rounded-2xl border border-white/15">
                         <p className="text-[11px] text-[#FB923C] font-bold mb-2">🪪 መታወቂያ ፊት (Front)</p>
@@ -373,15 +376,15 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: PUBLISH PRODUCT */}
+        {/* TAB 2: PUBLISH PRODUCT (MANDATORY FIELDS) */}
         {activeTab === 'publish' && (
           <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/5 max-w-2xl mx-auto space-y-4 shadow-xl">
-            <h3 className="text-sm font-bold text-[#FB923C]">📸 እቃ ወይም መጽሐፍ መጫኛ</h3>
+            <h3 className="text-sm font-bold text-[#FB923C]">📸 እቃ ወይም መጽሐፍ መጫኛ (ሁሉም መረጃዎች መሞላት አለባቸው)</h3>
             
             <form onSubmit={handleAdminPublishProduct} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-gray-400">ዋና ምድብ (Category)</label>
+                  <label className="text-xs text-gray-400">ዋና ምድብ (Category) *</label>
                   <select value={newProd.category} onChange={e => setNewProd({...newProd, category: e.target.value})} className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1">
                     <option value="መጽሐፍት">መጽሐፍት</option>
                     <option value="ንዋየ ቅድሳት">ንዋየ ቅድሳት</option>
@@ -390,7 +393,7 @@ export default function App() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400">የእቃው ሁኔታ</label>
+                  <label className="text-xs text-gray-400">የእቃው ሁኔታ *</label>
                   <select value={newProd.condition} onChange={e => setNewProd({...newProd, condition: e.target.value})} className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1">
                     <option value="አዲስ">አዲስ (New)</option>
                     <option value="አሮጌ (ያገለገለ)">አሮጌ / ያገለገለ</option>
@@ -399,12 +402,12 @@ export default function App() {
               </div>
 
               <div>
-                <label className="text-xs text-gray-400">{newProd.category === 'መጽሐፍት' ? 'የመጽሐፉ ርዕስ *' : 'የእቃው ስም *'}</label>
-                <input value={newProd.name} onChange={e => setNewProd({...newProd, name: e.target.value})} type="text" placeholder="የእቃው ስም" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                <label className="text-xs text-gray-400">{newProd.category === 'መጽሐፍት' ? 'የመጽሐፉ ርዕስ (Required) *' : 'የእቃው ስም (Required) *'}</label>
+                <input required value={newProd.name} onChange={e => setNewProd({...newProd, name: e.target.value})} type="text" placeholder="የእቃውን ስም ያስገቡ..." className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
               </div>
 
               <div className="bg-[#161A20] p-4 rounded-2xl border border-orange-500/30 space-y-3">
-                <p className="text-xs font-bold text-[#FB923C]">📸 የእቃ ፎቶ (ከጋለሪ ወይም በካሜራ)</p>
+                <p className="text-xs font-bold text-[#FB923C]">📸 የእቃ ፎቶ (ግዴታ ቢያንስ 1 ፎቶ ያስፈልጋል) *</p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => startCamera('image1')} className="bg-[#3A281E] text-[#FB923C] text-xs font-bold px-3 py-2.5 rounded-xl border border-orange-500/30">📸 ካሜራ</button>
                   <label className="flex-1 bg-[#1E232B] border border-white/10 text-gray-300 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center cursor-pointer">
@@ -412,13 +415,13 @@ export default function App() {
                     <input type="file" accept="image/*" onChange={e => handleGalleryUpload(e, 'image1')} className="hidden" />
                   </label>
                 </div>
-                {newProd.image1 && <img src={newProd.image1} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10 bg-white/20" />}
+                {newProd.image1 && <img src={newProd.image1} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10" />}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-gray-400">ዋጋ (ETB) *</label>
-                  <input value={newProd.price} onChange={e => setNewProd({...newProd, price: e.target.value})} type="number" placeholder="650" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                  <label className="text-xs text-gray-400">ዋጋ (ETB) (Required) *</label>
+                  <input required value={newProd.price} onChange={e => setNewProd({...newProd, price: e.target.value})} type="number" placeholder="650" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
                 </div>
                 <div>
                   <label className="text-xs text-gray-400">የዴሊቨሪ ዋጋ (ETB)</label>
@@ -428,17 +431,17 @@ export default function App() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-gray-400">የሚሸጥበት ከተማ *</label>
-                  <input value={newProd.city} onChange={e => setNewProd({...newProd, city: e.target.value})} type="text" placeholder="አዲስ አበባ" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                  <label className="text-xs text-gray-400">የሚሸጥበት ከተማ (Required) *</label>
+                  <input required value={newProd.city} onChange={e => setNewProd({...newProd, city: e.target.value})} type="text" placeholder="አዲስ አበባ" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400">ልዩ ቦታ/አድራሻ *</label>
-                  <input value={newProd.location} onChange={e => setNewProd({...newProd, location: e.target.value})} type="text" placeholder="ቦሌ መድኃኔአለም" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                  <label className="text-xs text-gray-400">ልዩ ቦታ/አድራሻ (Required) *</label>
+                  <input required value={newProd.location} onChange={e => setNewProd({...newProd, location: e.target.value})} type="text" placeholder="ቦሌ መድኃኔአለም" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
                 </div>
               </div>
 
               <button type="submit" className="w-full bg-gradient-to-r from-[#F97316] to-[#FB923C] text-black text-xs font-bold py-3.5 rounded-xl shadow-lg mt-2">
-                🚀 እቃውን ወደ ገበያ ጫን
+                🚀 እቃውን ወደ ገበያ ጫን (Publish)
               </button>
             </form>
           </div>
@@ -498,7 +501,7 @@ export default function App() {
       {selectedImage && (
         <div onClick={() => setSelectedImage(null)} className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer">
           <div className="max-w-3xl w-full text-center space-y-2">
-            <img src={selectedImage} alt="Zoomed ID" className="w-full max-h-[85vh] object-contain rounded-2xl border border-white/20 bg-white/20" />
+            <img src={selectedImage} alt="Zoomed ID" className="w-full max-h-[85vh] object-contain rounded-2xl border border-white/20 bg-white/10" />
             <p className="text-xs text-gray-300">ለመዝጋት እዚህ ላይ ይጫኑ</p>
           </div>
         </div>
