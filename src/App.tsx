@@ -45,7 +45,19 @@ export default function App() {
       if (vRes.ok) {
         setServerStatus('online');
         const vData = await vRes.json();
-        if (Array.isArray(vData)) setVendors(vData);
+        if (Array.isArray(vData)) {
+          // 🛠️ የቴሌብር እና የ CBE አካውንቶች እንዳይቀላቀሉ በግልጽ መለያየት
+          const cleanedVendors = vData.map((v: any) => {
+            const rawAccount = v.account || '';
+            const isTelebirr = rawAccount.startsWith('09') || rawAccount.startsWith('07') || rawAccount.length === 10;
+            return {
+              ...v,
+              telebirr_account: v.telebirr_account || (isTelebirr ? rawAccount : 'አልተመዘገበም'),
+              cbe_account: v.cbe_account || (!isTelebirr && rawAccount ? rawAccount : 'አልተመዘገበም')
+            };
+          });
+          setVendors(cleanedVendors);
+        }
       } else {
         setServerStatus('offline');
       }
@@ -138,11 +150,9 @@ export default function App() {
     try { await fetch(`${API_BASE_URL}/vendors/${id}/approve`, { method: 'POST' }); } catch {}
   };
 
-  // 📩 የማስተካከያ መልእክት ለተጠቃሚው መላኪያ
   const sendVendorFeedback = async (id: number, username: string) => {
     const message = feedbackInputs[id];
     if (!message) return alert("⚠️ እባክዎ የማስተካከያ መልእክት ይጻፉ!");
-    
     try {
       const res = await fetch(`${API_BASE_URL}/vendors/${id}/feedback`, {
         method: 'POST',
@@ -150,13 +160,11 @@ export default function App() {
         body: JSON.stringify({ admin_feedback: message, username })
       });
       if (res.ok) {
-        alert("📩 የማስተካከያ መልእክቱ በተሳካ ሁኔታ ተመዝግቧል! ተጠቃሚው ሚኒ አፑን ሲከፍት ያየዋል።");
+        alert("📩 የማስተካከያ መልእክቱ ተመዝግቧል!");
         fetchAdminData();
-      } else {
-        alert("⚠️ መላክ አልተቻለም።");
       }
     } catch {
-      alert("⚠️ የሰርቨር ስህተት አጋጥሟል።");
+      alert("⚠️ መላክ አልተቻለም።");
     }
   };
 
@@ -246,7 +254,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight">EOTC Market — Super Admin Dashboard</h1>
-            <p className="text-xs text-gray-400">Vendor KYC, Telebirr/Bank & Back ID Display Fix</p>
+            <p className="text-xs text-gray-400">Vendor KYC & Telebirr/Bank Fix Dashboard</p>
           </div>
         </div>
 
@@ -276,7 +284,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* TAB 1: VENDORS KYC & BANK INFO DISPLAY (Fixed Back ID Black Background & Telebirr/Bank) */}
+        {/* TAB 1: VENDORS KYC & BANK INFO DISPLAY */}
         {activeTab === 'vendors' && (
           <div className="space-y-4">
             {vendors.length === 0 ? (
@@ -301,17 +309,17 @@ export default function App() {
                     <div className="bg-[#161A20] p-3.5 rounded-xl border border-orange-500/30 space-y-1.5 text-xs">
                       <p className="text-[#FB923C] font-bold">💳 የሻጭ የክፍያ አካውንቶች፦</p>
                       <p>📱 <strong>ቴሌብር (Telebirr):</strong> <code className="text-orange-300">{v.telebirr_account || 'አልተመዘገበም'}</code></p>
-                      <p>🏦 <strong>ንግድ ባንክ (CBE):</strong> <code className="text-orange-300">{v.cbe_account || v.account || 'አልተመዘገበም'}</code></p>
+                      <p>🏦 <strong>ንግድ ባንክ (CBE):</strong> <code className="text-orange-300">{v.cbe_account || 'አልተመዘገበም'}</code></p>
                       <p>🏦 <strong>አቢሲኒያ (Abyssinia):</strong> <code className="text-orange-300">{v.abyssinia_account || 'አልተመዘገበም'}</code></p>
                     </div>
 
-                    {/* የፊት እና የኋላ መታወቂያ ፎቶዎች (የጀርባ ፎቶ ጥቁር እንዳይሆን ከነጭ/ግራጫ መደብ ጋር) */}
+                    {/* 📸 የመታወቂያ ፎቶዎች (ጥቁር እንዳይሆን ከነጭ/ግራጫ መደብ እና object-contain ጋር የተስተካከለ) */}
                     <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-[#161A20] p-3 rounded-2xl border border-white/15">
                         <p className="text-[11px] text-[#FB923C] font-bold mb-2">🪪 መታወቂያ ፊት (Front)</p>
                         {v.id_front_image ? (
-                          <div className="h-36 w-full rounded-xl overflow-hidden bg-white/10 flex items-center justify-center border border-white/10">
-                            <img onClick={() => setSelectedImage(v.id_front_image)} src={v.id_front_image} alt="ID Front" className="h-full w-full object-contain cursor-pointer shadow" />
+                          <div className="h-44 w-full rounded-xl overflow-hidden bg-white/20 flex items-center justify-center border border-white/15 shadow-inner">
+                            <img onClick={() => setSelectedImage(v.id_front_image)} src={v.id_front_image} alt="ID Front" className="h-full w-full object-contain cursor-pointer" />
                           </div>
                         ) : (
                           <p className="text-xs text-gray-500 py-8 text-center">ፎቶ የለም</p>
@@ -321,8 +329,8 @@ export default function App() {
                       <div className="bg-[#161A20] p-3 rounded-2xl border border-white/15">
                         <p className="text-[11px] text-[#FB923C] font-bold mb-2">🪪 መታወቂያ ኋላ (Back)</p>
                         {v.id_back_image ? (
-                          <div className="h-36 w-full rounded-xl overflow-hidden bg-white/10 flex items-center justify-center border border-white/10">
-                            <img onClick={() => setSelectedImage(v.id_back_image)} src={v.id_back_image} alt="ID Back" className="h-full w-full object-contain cursor-pointer shadow" />
+                          <div className="h-44 w-full rounded-xl overflow-hidden bg-white/20 flex items-center justify-center border border-white/15 shadow-inner">
+                            <img onClick={() => setSelectedImage(v.id_back_image)} src={v.id_back_image} alt="ID Back" className="h-full w-full object-contain cursor-pointer" />
                           </div>
                         ) : (
                           <p className="text-xs text-gray-500 py-8 text-center">የኋላ ፎቶ የለም</p>
@@ -404,7 +412,7 @@ export default function App() {
                     <input type="file" accept="image/*" onChange={e => handleGalleryUpload(e, 'image1')} className="hidden" />
                   </label>
                 </div>
-                {newProd.image1 && <img src={newProd.image1} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10" />}
+                {newProd.image1 && <img src={newProd.image1} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10 bg-white/20" />}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -442,8 +450,8 @@ export default function App() {
             {products.map(p => (
               <div key={p.id} className="bg-[#1E232B] p-5 rounded-3xl border border-white/5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-[#161A20] flex items-center justify-center overflow-hidden">
-                    {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <span className="text-xl">🛍️</span>}
+                  <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center overflow-hidden">
+                    {p.image ? <img src={p.image} alt="" className="w-full h-full object-contain" /> : <span className="text-xl">🛍️</span>}
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-white">{p.name}</h3>
@@ -490,7 +498,7 @@ export default function App() {
       {selectedImage && (
         <div onClick={() => setSelectedImage(null)} className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer">
           <div className="max-w-3xl w-full text-center space-y-2">
-            <img src={selectedImage} alt="Zoomed ID" className="w-full max-h-[85vh] object-contain rounded-2xl border border-white/20 bg-white/5" />
+            <img src={selectedImage} alt="Zoomed ID" className="w-full max-h-[85vh] object-contain rounded-2xl border border-white/20 bg-white/20" />
             <p className="text-xs text-gray-300">ለመዝጋት እዚህ ላይ ይጫኑ</p>
           </div>
         </div>
