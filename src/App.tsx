@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from './config';
 
 export default function App() {
@@ -10,7 +10,13 @@ export default function App() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [feedbackInputs, setFeedbackInputs] = useState<{ [key: string]: string }>({});
 
-  // 📦 ሙሉ የተደራጀ የእቃ እና የመጽሐፍት መጫኛ ፎርም (Product Publisher State)
+  // 📸 የካሜራ ማንሻ ስቴቶች
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [activePhotoSlot, setActivePhotoSlot] = useState<'image1' | 'image2' | 'image3'>('image1');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // 📦 3 ፎቶዎችን (ከጋለሪ ወይም ከካሜራ) የሚቀበል የእቃ መጫኛ ፎርም
   const [newProd, setNewProd] = useState({
     name: '',
     price: '',
@@ -20,18 +26,17 @@ export default function App() {
     location: 'ቦሌ',
     delivery_fee: '0',
     quantity: '1',
-    image: '',
+    image1: '',
+    image2: '',
+    image3: '',
     store_name: 'EOTC Official Store',
     seller_username: 'admin',
-    // 📚 መጽሐፍት
     author: '',
     pub_year: '',
     publisher: '',
     book_sub_category: 'መንፈሳዊ',
-    // 👗 አልባሳት
     size: 'M',
     color: 'ጥቁር',
-    // ⛪ ንዋየ ቅድሳት / ሥዕላት
     material: 'ወርቅ/ብር',
     dimension: 'መካከለኛ'
   });
@@ -69,6 +74,69 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // 🖼️ ከኮምፒውተር/ሞባይል ጋለሪ ፎቶዎችን ወደ Base64 የሚቀይር ተግባር
+  const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>, slot: 'image1' | 'image2' | 'image3') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = img.height * (400 / img.width);
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const base64 = canvas.toDataURL('image/jpeg', 0.7);
+        setNewProd(prev => ({ ...prev, [slot]: base64 }));
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 📸 ካሜራ መክፈቻ ተግባር
+  const startCamera = async (slot: 'image1' | 'image2' | 'image3') => {
+    setActivePhotoSlot(slot);
+    setCameraOpen(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch {
+      setCameraOpen(false);
+      alert("⚠️ ካሜራ መክፈት አልተቻለም። የብራውዘር ፈቃድ (Permission) ያረጋግጡ።");
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setCameraOpen(false);
+  };
+
+  const captureFromCamera = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = (video.videoHeight || 300) * (400 / (video.videoWidth || 400));
+    const ctx = canvas.getContext('2d');
+    ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const base64 = canvas.toDataURL('image/jpeg', 0.7);
+
+    setNewProd(prev => ({ ...prev, [activePhotoSlot]: base64 }));
+    stopCamera();
+  };
+
   const approveVendor = async (id: number) => {
     setVendors(vendors.map(v => v.id === id ? { ...v, status: 'Approved ✅' } : v));
     try { await fetch(`${API_BASE_URL}/vendors/${id}/approve`, { method: 'POST' }); } catch {}
@@ -100,20 +168,22 @@ export default function App() {
     try { await fetch(`${API_BASE_URL}/products/${id}`, { method: 'DELETE' }); } catch {}
   };
 
-  // 🚀 እቃዎችን በዳሽቦርዱ በኩል ሙሉ መረጃቸውን ሞልቶ መለጠፊያ (Publish)
   const handleAdminPublishProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProd.name || !newProd.price || !newProd.city || !newProd.location) {
-      return alert("⚠️ እባክዎ የእቃውን ስም፣ ዋጋ፣ ከተማ እና አድራሻ (ቦታ) ይሙሉ!");
+      return alert("⚠️ እባክዎ የእቃውን ስም፣ ዋጋ፣ ከተማ እና አድራሻ ይሙሉ!");
     }
     try {
       const res = await fetch(`${API_BASE_URL}/products`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newProd)
+        body: JSON.stringify({
+          ...newProd,
+          image: newProd.image1 || newProd.image2 || newProd.image3 || ''
+        })
       });
       if (res.ok) {
-        alert("🎉 እቃው ከተሟላ ዝርዝሩ ጋር በተሳካ ሁኔታ ወደ ገበያ ተጭኗል!");
+        alert("🎉 እቃው ከ 3 ፎቶዎቹ ጋር በተሳካ ሁኔታ ተጭኗል!");
         setNewProd({
           name: '',
           price: '',
@@ -123,7 +193,9 @@ export default function App() {
           location: 'ቦሌ',
           delivery_fee: '0',
           quantity: '1',
-          image: '',
+          image1: '',
+          image2: '',
+          image3: '',
           store_name: 'EOTC Official Store',
           seller_username: 'admin',
           author: '',
@@ -139,7 +211,7 @@ export default function App() {
         setActiveTab('products');
       }
     } catch {
-      alert("⚠️ እቃውን መጫን አልተቻለም። ሰርቨሩን ያረጋግጡ።");
+      alert("⚠️ እቃውን መጫን አልተቻለም።");
     }
   };
 
@@ -150,6 +222,22 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#161A20] text-white p-4 md:p-8 font-sans">
+      {/* 📸 ካሜራ ሞዳል */}
+      {cameraOpen && (
+        <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[#1E232B] rounded-3xl p-4 border border-orange-500/40 space-y-4 text-center shadow-2xl">
+            <h3 className="text-sm font-bold text-[#FB923C]">የእቃ ፎቶ ማንሻ ካሜራ</h3>
+            <div className="relative w-full h-64 bg-black rounded-2xl overflow-hidden border border-[#FB923C]">
+              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={stopCamera} className="flex-1 bg-[#262C36] text-gray-300 text-xs font-bold py-3 rounded-xl">ሰርዝ</button>
+              <button onClick={captureFromCamera} className="flex-1 bg-[#FB923C] text-black text-xs font-bold py-3 rounded-xl">📸 ፎቶ አንሳ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="bg-[#1E232B] border border-white/5 rounded-3xl px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 mb-6 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#F97316] to-[#FB923C] flex items-center justify-center font-bold text-black text-lg shadow-lg">
@@ -157,7 +245,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight">EOTC Market — Super Admin Dashboard</h1>
-            <p className="text-xs text-gray-400">Complete Dashboard: KYC, Product Management, Advanced Publisher & Escrow</p>
+            <p className="text-xs text-gray-400">Advanced Publisher with Gallery & Live Camera Support</p>
           </div>
         </div>
 
@@ -174,23 +262,23 @@ export default function App() {
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-wrap gap-3 border-b border-white/10 pb-3">
           <button onClick={() => setActiveTab('publish')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'publish' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
-            ➕ 1. እቃ/መጽሐፍ በቀጥታ መጫኛ (Advanced Publisher)
+            ➕ 1. እቃ/መጽሐፍ መጫኛ (ከጋለሪ እና ካሜራ ጋር)
           </button>
           <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'products' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
-            📦 2. የእቃዎች ዝርዝር አስተዳደር ({products.length})
+            📦 2. የእቃዎች ዝርዝር ({products.length})
           </button>
           <button onClick={() => setActiveTab('vendors')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'vendors' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
-            🪪 3. ሻጮች KYC እና Feedback ({vendors.length})
+            🪪 3. ሻጮች KYC ({vendors.length})
           </button>
           <button onClick={() => setActiveTab('orders')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'orders' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
             💳 4. የ Escrow ትዕዛዞች ({orders.length})
           </button>
         </div>
 
-        {/* TAB 1: ADVANCED ADMIN PRODUCT PUBLISHER (ሁሉም fields የሚሞሉበት) */}
+        {/* TAB 1: PUBLISHER WITH GALLERY UPLOAD & CAMERA */}
         {activeTab === 'publish' && (
           <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/5 max-w-2xl mx-auto space-y-4 shadow-xl">
-            <h3 className="text-sm font-bold text-[#FB923C]">📦 እቃ ወይም መጽሐፍ በምድብ ዝርዝራቸው ሞልቶ መጫኛ</h3>
+            <h3 className="text-sm font-bold text-[#FB923C]">📸 እቃ ወይም መጽሐፍ (እስከ 3 ፎቶዎች ከጋለሪ ወይም በካሜራ) በመጫን ላይ</h3>
             
             <form onSubmit={handleAdminPublishProduct} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -214,45 +302,52 @@ export default function App() {
 
               <div>
                 <label className="text-xs text-gray-400">{newProd.category === 'መጽሐፍት' ? 'የመጽሐፉ ርዕስ *' : 'የእቃው ስም *'}</label>
-                <input value={newProd.name} onChange={e => setNewProd({...newProd, name: e.target.value})} type="text" placeholder="ለምሳሌ፦ መጽሐፈ ሰዓታት" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                <input value={newProd.name} onChange={e => setNewProd({...newProd, name: e.target.value})} type="text" placeholder="የእቃው ስም" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
               </div>
 
-              {/* 📚 መጽሐፍ ከሆነ የሚመጡ ተጨማሪ ዝርዝሮች */}
-              {newProd.category === 'መጽሐፍት' && (
-                <div className="bg-[#161A20] p-4 rounded-2xl border border-orange-500/30 space-y-3">
-                  <p className="text-xs font-bold text-[#FB923C]">📚 የመጽሐፍ ዝርዝር መረጃዎች (Product Details Page)</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input value={newProd.author} onChange={e => setNewProd({...newProd, author: e.target.value})} type="text" placeholder="የጸሐፊው ስም" className="bg-[#1E232B] text-white text-xs rounded-xl px-3 py-2.5 border border-white/10" />
-                    <input value={newProd.pub_year} onChange={e => setNewProd({...newProd, pub_year: e.target.value})} type="text" placeholder="የህትመት ዘመን (2016)" className="bg-[#1E232B] text-white text-xs rounded-xl px-3 py-2.5 border border-white/10" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input value={newProd.publisher} onChange={e => setNewProd({...newProd, publisher: e.target.value})} type="text" placeholder="አሳታሚ" className="bg-[#1E232B] text-white text-xs rounded-xl px-3 py-2.5 border border-white/10" />
-                    <select value={newProd.book_sub_category} onChange={e => setNewProd({...newProd, book_sub_category: e.target.value})} className="bg-[#1E232B] text-white text-xs rounded-xl px-3 py-2.5 border border-white/10">
-                      <option value="መንፈሳዊ">መንፈሳዊ</option>
-                      <option value="የትምህርት">የትምህርት</option>
-                      <option value="የሳይንስ">የሳይንስ</option>
-                      <option value="ታሪክ እና ሌሎች">ታሪክ እና ሌሎች</option>
-                    </select>
-                  </div>
-                </div>
-              )}
+              {/* 🖼️ 3 ፎቶዎች ከጋለሪ ወይም በካሜራ ማካተት */}
+              <div className="bg-[#161A20] p-4 rounded-2xl border border-orange-500/30 space-y-3">
+                <p className="text-xs font-bold text-[#FB923C]">📸 3 የእቃ ፎቶዎች (ከጋለሪ መምረጥ ወይም በካሜራ ማንሳት)</p>
 
-              {/* 👗 አልባሳት ከሆነ */}
-              {newProd.category === 'አልባሳት' && (
-                <div className="bg-[#161A20] p-4 rounded-2xl border border-orange-500/30 space-y-3">
-                  <p className="text-xs font-bold text-[#FB923C]">👗 የአልባሳት ዝርዝር</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <select value={newProd.size} onChange={e => setNewProd({...newProd, size: e.target.value})} className="bg-[#1E232B] text-white text-xs rounded-xl px-3 py-2.5 border border-white/10">
-                      <option value="S">መጠን: S</option>
-                      <option value="M">መጠን: M</option>
-                      <option value="L">መጠን: L</option>
-                      <option value="XL">መጠን: XL</option>
-                      <option value="XXL">መጠን: XXL</option>
-                    </select>
-                    <input value={newProd.color} onChange={e => setNewProd({...newProd, color: e.target.value})} type="text" placeholder="ቀለም (ለምሳሌ ጥቁር)" className="bg-[#1E232B] text-white text-xs rounded-xl px-3 py-2.5 border border-white/10" />
+                {/* ፎቶ 1 */}
+                <div className="space-y-1">
+                  <p className="text-[11px] text-gray-300">ፎቶ 1 (ዋና ፎቶ)</p>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => startCamera('image1')} className="bg-[#3A281E] text-[#FB923C] text-xs font-bold px-3 py-2.5 rounded-xl border border-orange-500/30 whitespace-nowrap">📸 ካሜራ</button>
+                    <label className="flex-1 bg-[#1E232B] border border-white/10 text-gray-300 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center cursor-pointer hover:border-orange-500/40">
+                      🖼️ ከጋለሪ ምረጥ
+                      <input type="file" accept="image/*" onChange={e => handleGalleryUpload(e, 'image1')} className="hidden" />
+                    </label>
                   </div>
+                  {newProd.image1 && <img src={newProd.image1} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10 shadow" />}
                 </div>
-              )}
+
+                {/* ፎቶ 2 */}
+                <div className="space-y-1 pt-2 border-t border-white/5">
+                  <p className="text-[11px] text-gray-300">ፎቶ 2 (አማራጭ)</p>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => startCamera('image2')} className="bg-[#3A281E] text-[#FB923C] text-xs font-bold px-3 py-2.5 rounded-xl border border-orange-500/30 whitespace-nowrap">📸 ካሜራ</button>
+                    <label className="flex-1 bg-[#1E232B] border border-white/10 text-gray-300 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center cursor-pointer hover:border-orange-500/40">
+                      🖼️ ከጋለሪ ምረጥ
+                      <input type="file" accept="image/*" onChange={e => handleGalleryUpload(e, 'image2')} className="hidden" />
+                    </label>
+                  </div>
+                  {newProd.image2 && <img src={newProd.image2} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10 shadow" />}
+                </div>
+
+                {/* ፎቶ 3 */}
+                <div className="space-y-1 pt-2 border-t border-white/5">
+                  <p className="text-[11px] text-gray-300">ፎቶ 3 (አማራጭ)</p>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => startCamera('image3')} className="bg-[#3A281E] text-[#FB923C] text-xs font-bold px-3 py-2.5 rounded-xl border border-orange-500/30 whitespace-nowrap">📸 ካሜራ</button>
+                    <label className="flex-1 bg-[#1E232B] border border-white/10 text-gray-300 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center cursor-pointer hover:border-orange-500/40">
+                      🖼️ ከጋለሪ ምረጥ
+                      <input type="file" accept="image/*" onChange={e => handleGalleryUpload(e, 'image3')} className="hidden" />
+                    </label>
+                  </div>
+                  {newProd.image3 && <img src={newProd.image3} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10 shadow" />}
+                </div>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -276,11 +371,6 @@ export default function App() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs text-gray-400">የፎቶ URL (Image URL)</label>
-                <input value={newProd.image} onChange={e => setNewProd({...newProd, image: e.target.value})} type="text" placeholder="https://..." className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
-              </div>
-
               <button type="submit" className="w-full bg-gradient-to-r from-[#F97316] to-[#FB923C] text-black text-xs font-bold py-3.5 rounded-xl shadow-lg mt-2">
                 🚀 እቃውን ወደ ገበያ ጫን (Publish)
               </button>
@@ -288,7 +378,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: PRODUCTS MANAGEMENT */}
+        {/* TAB 2: PRODUCTS */}
         {activeTab === 'products' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {products.map(p => (
@@ -299,7 +389,7 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-white">{p.name}</h3>
-                    <p className="text-xs font-extrabold text-[#FB923C]">{p.price} ETB {p.delivery_fee ? `(Del: ${p.delivery_fee})` : ''}</p>
+                    <p className="text-xs font-extrabold text-[#FB923C]">{p.price} ETB</p>
                     <p className="text-[11px] text-gray-400">📍 {p.city || 'አ.አ'}, {p.location} • @{p.seller_username}</p>
                   </div>
                 </div>
@@ -309,7 +399,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: VENDORS KYC & FEEDBACK */}
+        {/* TAB 3: VENDORS */}
         {activeTab === 'vendors' && (
           <div className="space-y-4">
             {vendors.length === 0 ? (
@@ -328,7 +418,7 @@ export default function App() {
                     </div>
 
                     <p className="text-xs text-gray-300">
-                      📞 <strong>ስልክ፦</strong> {v.phone} &nbsp;|&nbsp; 📱 <strong>ቴሌብር/ባንክ፦</strong> <code className="text-orange-300">{v.telebirr_account || v.cbe_account || v.account}</code>
+                      📞 <strong>ስልክ፦</strong> {v.phone} &nbsp;|&nbsp; 📱 <strong>አካውንት፦</strong> <code className="text-orange-300">{v.telebirr_account || v.cbe_account}</code>
                     </p>
 
                     <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -345,7 +435,7 @@ export default function App() {
                     <div className="flex gap-2 pt-2">
                       <input 
                         type="text" 
-                        placeholder="የማስተካከያ መልእክት (ለምሳሌ፦ መታወቂያው ግልጽ አይደለም)..." 
+                        placeholder="የማስተካከያ መልእክት..." 
                         value={feedbackInputs[v.id] || ''}
                         onChange={e => setFeedbackInputs({...feedbackInputs, [v.id]: e.target.value})}
                         className="flex-1 bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-2.5 border border-white/10"
@@ -367,7 +457,7 @@ export default function App() {
                         </button>
                       )}
                       <button onClick={() => rejectVendor(v.id)} className="bg-red-500/10 text-red-400 text-xs font-bold px-4 py-3 rounded-xl">
-                        🗑️ ውድቅ አድርግ
+                        🗑️ ውድቅ
                       </button>
                     </div>
                   </div>
@@ -377,7 +467,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 4: ORDERS & ESCROW */}
+        {/* TAB 4: ORDERS */}
         {activeTab === 'orders' && (
           <div className="space-y-4">
             {orders.length === 0 ? (
@@ -396,7 +486,7 @@ export default function App() {
                     <span className="text-xs px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold">{o.status}</span>
                     {(!o.status.includes('Released') && !o.status.includes('ተለቋል')) && (
                       <button onClick={() => approveOrder(o.id)} className="bg-emerald-500 text-black text-xs font-bold px-4 py-2.5 rounded-xl">
-                        ✅ ገንዘቡን ለሻጭ ልቀቅ (Release)
+                        ✅ ገንዘቡን ለሻጭ ልቀቅ
                       </button>
                     )}
                   </div>
