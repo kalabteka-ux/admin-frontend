@@ -29,7 +29,9 @@ export default function App() {
       if (vRes.ok) {
         setServerStatus('online');
         const vData = await vRes.json();
-        if (Array.isArray(vData)) setVendors(vData);
+        if (Array.isArray(vData)) {
+          setVendors(vData);
+        }
       } else {
         setServerStatus('offline');
       }
@@ -71,7 +73,6 @@ export default function App() {
     try { await fetch(`${API_BASE_URL}/products/${id}`, { method: 'DELETE' }); } catch {}
   };
 
-  // አድሚኑ በቀጥታ እቃዎችን በ POST መጫኛ
   const handleAdminPublishProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProd.name || !newProd.price) {
@@ -101,18 +102,13 @@ export default function App() {
         setActiveTab('products');
       }
     } catch {
-      alert("⚠️ እቃውን መጫን አልተቻለም። ሰርቨሩን ያረጋግጡ።");
+      alert("⚠️ እቃውን መጫን አልተቻለም።");
     }
   };
 
   const approveOrder = async (id: number) => {
     setOrders(orders.map(o => o.id === id ? { ...o, status: 'ተረጋግጧል (Verified ✅)' } : o));
     try { await fetch(`${API_BASE_URL}/orders/${id}/approve`, { method: 'POST' }); } catch {}
-  };
-
-  const cancelOrder = async (id: number) => {
-    setOrders(orders.map(o => o.id === id ? { ...o, status: 'ውድቅ ተደርጓል (Cancelled ❌)' } : o));
-    try { await fetch(`${API_BASE_URL}/orders/${id}/cancel`, { method: 'POST' }); } catch {}
   };
 
   return (
@@ -124,11 +120,11 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight">EOTC Market — Super Admin Dashboard</h1>
-            <p className="text-xs text-gray-400">Vendor KYC (Front & Back ID), Product Management & Direct Publisher</p>
+            <p className="text-xs text-gray-400">KYC Verification (Front & Back ID), Product Management & Escrow</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
           <span className={`text-xs font-bold px-3.5 py-2 rounded-full border ${serverStatus === 'online' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>
             {serverStatus === 'online' ? '● Live Sync Active' : '⚠️ Connecting...'}
           </span>
@@ -154,7 +150,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* TAB 1: VENDOR KYC WITH FRONT & BACK ID */}
+        {/* TAB 1: VENDOR KYC WITH FRONT & BACK ID DISPLAY */}
         {activeTab === 'vendors' && (
           <div className="space-y-4">
             {vendors.length === 0 ? (
@@ -176,19 +172,35 @@ export default function App() {
                       📞 <strong>ስልክ፦</strong> {v.phone} &nbsp;|&nbsp; 🏦 <strong>አካውንት፦</strong> <code className="text-orange-300">{v.account}</code>
                     </p>
 
-                    <div className="pt-1 flex flex-wrap gap-4">
-                      {v.id_front_image && (
-                        <div>
-                          <p className="text-[11px] text-[#FB923C] font-semibold mb-1">🪪 መታወቂያ ፊት (Front ID)</p>
-                          <img onClick={() => setSelectedImage(v.id_front_image)} src={v.id_front_image} alt="ID Front" className="h-32 w-52 rounded-xl border border-orange-500/30 object-cover cursor-pointer hover:scale-105 transition shadow-lg" />
-                        </div>
-                      )}
-                      {v.id_back_image && (
-                        <div>
-                          <p className="text-[11px] text-[#FB923C] font-semibold mb-1">🪪 መታወቂያ ኋላ (Back ID)</p>
-                          <img onClick={() => setSelectedImage(v.id_back_image)} src={v.id_back_image} alt="ID Back" className="h-32 w-52 rounded-xl border border-orange-500/30 object-cover cursor-pointer hover:scale-105 transition shadow-lg" />
-                        </div>
-                      )}
+                    {/* የፊት እና የኋላ መታወቂያ ምስሎች ማሳያ */}
+                    <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="bg-[#161A20] p-3 rounded-2xl border border-white/10">
+                        <p className="text-[11px] text-[#FB923C] font-bold mb-2">🪪 የመታወቂያ ፊት (Front ID)</p>
+                        {v.id_front_image ? (
+                          <img 
+                            onClick={() => setSelectedImage(v.id_front_image)} 
+                            src={v.id_front_image} 
+                            alt="ID Front" 
+                            className="h-36 w-full rounded-xl object-cover cursor-pointer hover:opacity-90 transition border border-white/10 shadow" 
+                          />
+                        ) : (
+                          <p className="text-xs text-gray-500 py-6 text-center">ፎቶ የለም</p>
+                        )}
+                      </div>
+
+                      <div className="bg-[#161A20] p-3 rounded-2xl border border-white/10">
+                        <p className="text-[11px] text-[#FB923C] font-bold mb-2">🪪 የመታወቂያ ኋላ (Back ID)</p>
+                        {v.id_back_image ? (
+                          <img 
+                            onClick={() => setSelectedImage(v.id_back_image)} 
+                            src={v.id_back_image} 
+                            alt="ID Back" 
+                            className="h-36 w-full rounded-xl object-cover cursor-pointer hover:opacity-90 transition border border-white/10 shadow" 
+                          />
+                        ) : (
+                          <p className="text-xs text-gray-500 py-6 text-center">ፎቶ አልተገኘም (Back ID missing)</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -234,7 +246,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: ADMIN DIRECT PRODUCT PUBLISHER (POST) */}
+        {/* TAB 3: ADMIN PUBLISHER */}
         {activeTab === 'publish' && (
           <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/5 max-w-xl mx-auto space-y-4 shadow-xl">
             <h3 className="text-sm font-bold text-[#FB923C]">📦 እቃ በቀጥታ በአድሚን በኩል መጫኛ (Direct Publisher)</h3>
@@ -260,26 +272,12 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-400">ሁኔታ (Condition)</label>
-                  <select value={newProd.condition} onChange={e => setNewProd({...newProd, condition: e.target.value})} className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1">
-                    <option value="አዲስ">አዲስ</option>
-                    <option value="ያገለገለ">ያገለገለ</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400">አድራሻ (Location)</label>
-                  <input value={newProd.location} onChange={e => setNewProd({...newProd, location: e.target.value})} type="text" placeholder="አ.አ, ቦሌ" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
-                </div>
-              </div>
-
               <div>
-                <label className="text-xs text-gray-400">የፎቶ URL (Image URL - አማራጭ)</label>
+                <label className="text-xs text-gray-400">የፎቶ URL (Image URL)</label>
                 <input value={newProd.image} onChange={e => setNewProd({...newProd, image: e.target.value})} type="text" placeholder="https://..." className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
               </div>
 
-              <button type="submit" className="w-full bg-gradient-to-r from-[#F97316] to-[#FB923C] text-black text-xs font-bold py-3.5 rounded-xl shadow-lg mt-2 active:scale-95 transition">
+              <button type="submit" className="w-full bg-gradient-to-r from-[#F97316] to-[#FB923C] text-black text-xs font-bold py-3.5 rounded-xl shadow-lg mt-2">
                 🚀 እቃውን ወደ ገበያ ጫን (Publish)
               </button>
             </form>
