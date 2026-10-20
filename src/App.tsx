@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from './config';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'vendors' | 'products' | 'publish' | 'orders'>('publish');
+  const [activeTab, setActiveTab] = useState<'vendors' | 'products' | 'publish' | 'orders'>('vendors');
   const [vendors, setVendors] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -10,13 +10,11 @@ export default function App() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [feedbackInputs, setFeedbackInputs] = useState<{ [key: string]: string }>({});
 
-  // 📸 የካሜራ ማንሻ ስቴቶች
   const [cameraOpen, setCameraOpen] = useState(false);
   const [activePhotoSlot, setActivePhotoSlot] = useState<'image1' | 'image2' | 'image3'>('image1');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // 📦 3 ፎቶዎችን (ከጋለሪ ወይም ከካሜራ) የሚቀበል የእቃ መጫኛ ፎርም
   const [newProd, setNewProd] = useState({
     name: '',
     price: '',
@@ -74,7 +72,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // 🖼️ ከኮምፒውተር/ሞባይል ጋለሪ ፎቶዎችን ወደ Base64 የሚቀይር ተግባር
   const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>, slot: 'image1' | 'image2' | 'image3') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -95,7 +92,6 @@ export default function App() {
     reader.readAsDataURL(file);
   };
 
-  // 📸 ካሜራ መክፈቻ ተግባር
   const startCamera = async (slot: 'image1' | 'image2' | 'image3') => {
     setActivePhotoSlot(slot);
     setCameraOpen(true);
@@ -111,7 +107,7 @@ export default function App() {
       }
     } catch {
       setCameraOpen(false);
-      alert("⚠️ ካሜራ መክፈት አልተቻለም። የብራውዘር ፈቃድ (Permission) ያረጋግጡ።");
+      alert("⚠️ ካሜራ መክፈት አልተቻለም።");
     }
   };
 
@@ -183,7 +179,7 @@ export default function App() {
         })
       });
       if (res.ok) {
-        alert("🎉 እቃው ከ 3 ፎቶዎቹ ጋር በተሳካ ሁኔታ ተጭኗል!");
+        alert("🎉 እቃው በተሳካ ሁኔታ ተጭኗል!");
         setNewProd({
           name: '',
           price: '',
@@ -222,7 +218,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#161A20] text-white p-4 md:p-8 font-sans">
-      {/* 📸 ካሜራ ሞዳል */}
       {cameraOpen && (
         <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4">
           <div className="w-full max-w-sm bg-[#1E232B] rounded-3xl p-4 border border-orange-500/40 space-y-4 text-center shadow-2xl">
@@ -245,7 +240,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight">EOTC Market — Super Admin Dashboard</h1>
-            <p className="text-xs text-gray-400">Advanced Publisher with Gallery & Live Camera Support</p>
+            <p className="text-xs text-gray-400">Vendor KYC & Telebirr/Bank Sync Dashboard</p>
           </div>
         </div>
 
@@ -261,150 +256,26 @@ export default function App() {
 
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-wrap gap-3 border-b border-white/10 pb-3">
+          <button onClick={() => setActiveTab('vendors')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'vendors' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
+            🪪 1. የሻጮች KYC እና የባንክ መረጃ ({vendors.length})
+          </button>
           <button onClick={() => setActiveTab('publish')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'publish' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
-            ➕ 1. እቃ/መጽሐፍ መጫኛ (ከጋለሪ እና ካሜራ ጋር)
+            ➕ 2. እቃ/መጽሐፍ መጫኛ
           </button>
           <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'products' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
-            📦 2. የእቃዎች ዝርዝር ({products.length})
-          </button>
-          <button onClick={() => setActiveTab('vendors')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'vendors' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
-            🪪 3. ሻጮች KYC ({vendors.length})
+            📦 3. የእቃዎች ዝርዝር ({products.length})
           </button>
           <button onClick={() => setActiveTab('orders')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'orders' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
             💳 4. የ Escrow ትዕዛዞች ({orders.length})
           </button>
         </div>
 
-        {/* TAB 1: PUBLISHER WITH GALLERY UPLOAD & CAMERA */}
-        {activeTab === 'publish' && (
-          <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/5 max-w-2xl mx-auto space-y-4 shadow-xl">
-            <h3 className="text-sm font-bold text-[#FB923C]">📸 እቃ ወይም መጽሐፍ (እስከ 3 ፎቶዎች ከጋለሪ ወይም በካሜራ) በመጫን ላይ</h3>
-            
-            <form onSubmit={handleAdminPublishProduct} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-400">ዋና ምድብ (Category)</label>
-                  <select value={newProd.category} onChange={e => setNewProd({...newProd, category: e.target.value})} className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1">
-                    <option value="መጽሐፍት">መጽሐፍት</option>
-                    <option value="ንዋየ ቅድሳት">ንዋየ ቅድሳት</option>
-                    <option value="አልባሳት">አልባሳት</option>
-                    <option value="ሥዕላት">ሥዕላት</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400">የእቃው ሁኔታ</label>
-                  <select value={newProd.condition} onChange={e => setNewProd({...newProd, condition: e.target.value})} className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1">
-                    <option value="አዲስ">አዲስ (New)</option>
-                    <option value="አሮጌ (ያገለገለ)">አሮጌ / ያገለገለ</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-400">{newProd.category === 'መጽሐፍት' ? 'የመጽሐፉ ርዕስ *' : 'የእቃው ስም *'}</label>
-                <input value={newProd.name} onChange={e => setNewProd({...newProd, name: e.target.value})} type="text" placeholder="የእቃው ስም" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
-              </div>
-
-              {/* 🖼️ 3 ፎቶዎች ከጋለሪ ወይም በካሜራ ማካተት */}
-              <div className="bg-[#161A20] p-4 rounded-2xl border border-orange-500/30 space-y-3">
-                <p className="text-xs font-bold text-[#FB923C]">📸 3 የእቃ ፎቶዎች (ከጋለሪ መምረጥ ወይም በካሜራ ማንሳት)</p>
-
-                {/* ፎቶ 1 */}
-                <div className="space-y-1">
-                  <p className="text-[11px] text-gray-300">ፎቶ 1 (ዋና ፎቶ)</p>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => startCamera('image1')} className="bg-[#3A281E] text-[#FB923C] text-xs font-bold px-3 py-2.5 rounded-xl border border-orange-500/30 whitespace-nowrap">📸 ካሜራ</button>
-                    <label className="flex-1 bg-[#1E232B] border border-white/10 text-gray-300 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center cursor-pointer hover:border-orange-500/40">
-                      🖼️ ከጋለሪ ምረጥ
-                      <input type="file" accept="image/*" onChange={e => handleGalleryUpload(e, 'image1')} className="hidden" />
-                    </label>
-                  </div>
-                  {newProd.image1 && <img src={newProd.image1} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10 shadow" />}
-                </div>
-
-                {/* ፎቶ 2 */}
-                <div className="space-y-1 pt-2 border-t border-white/5">
-                  <p className="text-[11px] text-gray-300">ፎቶ 2 (አማራጭ)</p>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => startCamera('image2')} className="bg-[#3A281E] text-[#FB923C] text-xs font-bold px-3 py-2.5 rounded-xl border border-orange-500/30 whitespace-nowrap">📸 ካሜራ</button>
-                    <label className="flex-1 bg-[#1E232B] border border-white/10 text-gray-300 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center cursor-pointer hover:border-orange-500/40">
-                      🖼️ ከጋለሪ ምረጥ
-                      <input type="file" accept="image/*" onChange={e => handleGalleryUpload(e, 'image2')} className="hidden" />
-                    </label>
-                  </div>
-                  {newProd.image2 && <img src={newProd.image2} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10 shadow" />}
-                </div>
-
-                {/* ፎቶ 3 */}
-                <div className="space-y-1 pt-2 border-t border-white/5">
-                  <p className="text-[11px] text-gray-300">ፎቶ 3 (አማራጭ)</p>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => startCamera('image3')} className="bg-[#3A281E] text-[#FB923C] text-xs font-bold px-3 py-2.5 rounded-xl border border-orange-500/30 whitespace-nowrap">📸 ካሜራ</button>
-                    <label className="flex-1 bg-[#1E232B] border border-white/10 text-gray-300 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center cursor-pointer hover:border-orange-500/40">
-                      🖼️ ከጋለሪ ምረጥ
-                      <input type="file" accept="image/*" onChange={e => handleGalleryUpload(e, 'image3')} className="hidden" />
-                    </label>
-                  </div>
-                  {newProd.image3 && <img src={newProd.image3} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10 shadow" />}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-400">ዋጋ (ETB) *</label>
-                  <input value={newProd.price} onChange={e => setNewProd({...newProd, price: e.target.value})} type="number" placeholder="650" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400">የዴሊቨሪ ዋጋ (ETB)</label>
-                  <input value={newProd.delivery_fee} onChange={e => setNewProd({...newProd, delivery_fee: e.target.value})} type="number" placeholder="100" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-400">የሚሸጥበት ከተማ *</label>
-                  <input value={newProd.city} onChange={e => setNewProd({...newProd, city: e.target.value})} type="text" placeholder="አዲስ አበባ" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400">ልዩ ቦታ/አድራሻ *</label>
-                  <input value={newProd.location} onChange={e => setNewProd({...newProd, location: e.target.value})} type="text" placeholder="ቦሌ መድኃኔአለም" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
-                </div>
-              </div>
-
-              <button type="submit" className="w-full bg-gradient-to-r from-[#F97316] to-[#FB923C] text-black text-xs font-bold py-3.5 rounded-xl shadow-lg mt-2">
-                🚀 እቃውን ወደ ገበያ ጫን (Publish)
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* TAB 2: PRODUCTS */}
-        {activeTab === 'products' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {products.map(p => (
-              <div key={p.id} className="bg-[#1E232B] p-5 rounded-3xl border border-white/5 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-[#161A20] flex items-center justify-center overflow-hidden">
-                    {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <span className="text-xl">🛍️</span>}
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white">{p.name}</h3>
-                    <p className="text-xs font-extrabold text-[#FB923C]">{p.price} ETB</p>
-                    <p className="text-[11px] text-gray-400">📍 {p.city || 'አ.አ'}, {p.location} • @{p.seller_username}</p>
-                  </div>
-                </div>
-                <button onClick={() => deleteProduct(p.id)} className="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2 rounded-xl">🗑️ አጥፋ</button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* TAB 3: VENDORS */}
+        {/* TAB 1: VENDORS KYC & BANK INFO DISPLAY */}
         {activeTab === 'vendors' && (
           <div className="space-y-4">
             {vendors.length === 0 ? (
               <div className="bg-[#1E232B] rounded-3xl p-12 text-center border border-white/5">
-                <p className="text-gray-400 text-sm">ምንም የ KYC ማመልከቻ የለም።</p>
+                <p className="text-gray-400 text-sm">እስካሁን ምንም የ KYC ማመልከቻ አልመጣም።</p>
               </div>
             ) : (
               vendors.map(v => (
@@ -418,8 +289,16 @@ export default function App() {
                     </div>
 
                     <p className="text-xs text-gray-300">
-                      📞 <strong>ስልክ፦</strong> {v.phone} &nbsp;|&nbsp; 📱 <strong>አካውንት፦</strong> <code className="text-orange-300">{v.telebirr_account || v.cbe_account}</code>
+                      📞 <strong>ስልክ፦</strong> {v.phone}
                     </p>
+
+                    {/* የቴሌብር እና የባንክ አካውንቶች ማሳያ */}
+                    <div className="bg-[#161A20] p-3 rounded-xl border border-orange-500/20 space-y-1 text-xs">
+                      <p className="text-[#FB923C] font-bold">💳 የሻጭ የክፍያ አካውንቶች፦</p>
+                      <p>📱 <strong>ቴሌብር:</strong> <code className="text-orange-300">{v.telebirr_account || 'አልተመዘገበም'}</code></p>
+                      <p>🏦 <strong>CBE:</strong> <code className="text-orange-300">{v.cbe_account || v.account || 'አልተመዘገበም'}</code></p>
+                      <p>🏦 <strong>አቢሲኒያ:</strong> <code className="text-orange-300">{v.abyssinia_account || 'አልተመዘገበም'}</code></p>
+                    </div>
 
                     <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-[#161A20] p-3 rounded-2xl border border-white/15">
@@ -435,7 +314,7 @@ export default function App() {
                     <div className="flex gap-2 pt-2">
                       <input 
                         type="text" 
-                        placeholder="የማስተካከያ መልእክት..." 
+                        placeholder="የማስተካከያ መልእክት (ለምሳሌ፦ ቴሌብር አካውንትዎ ትክክል አይደለም)..." 
                         value={feedbackInputs[v.id] || ''}
                         onChange={e => setFeedbackInputs({...feedbackInputs, [v.id]: e.target.value})}
                         className="flex-1 bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-2.5 border border-white/10"
@@ -464,6 +343,98 @@ export default function App() {
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {/* TAB 2: PUBLISH PRODUCT */}
+        {activeTab === 'publish' && (
+          <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/5 max-w-2xl mx-auto space-y-4 shadow-xl">
+            <h3 className="text-sm font-bold text-[#FB923C]">📸 እቃ ወይም መጽሐፍ መጫኛ</h3>
+            
+            <form onSubmit={handleAdminPublishProduct} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400">ዋና ምድብ (Category)</label>
+                  <select value={newProd.category} onChange={e => setNewProd({...newProd, category: e.target.value})} className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1">
+                    <option value="መጽሐፍት">መጽሐፍት</option>
+                    <option value="ንዋየ ቅድሳት">ንዋየ ቅድሳት</option>
+                    <option value="አልባሳት">አልባሳት</option>
+                    <option value="ሥዕላት">ሥዕላት</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400">የእቃው ሁኔታ</label>
+                  <select value={newProd.condition} onChange={e => setNewProd({...newProd, condition: e.target.value})} className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1">
+                    <option value="አዲስ">አዲስ (New)</option>
+                    <option value="አሮጌ (ያገለገለ)">አሮጌ / ያገለገለ</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-400">{newProd.category === 'መጽሐፍት' ? 'የመጽሐፉ ርዕስ *' : 'የእቃው ስም *'}</label>
+                <input value={newProd.name} onChange={e => setNewProd({...newProd, name: e.target.value})} type="text" placeholder="የእቃው ስም" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+              </div>
+
+              <div className="bg-[#161A20] p-4 rounded-2xl border border-orange-500/30 space-y-3">
+                <p className="text-xs font-bold text-[#FB923C]">📸 የእቃ ፎቶ (ከጋለሪ ወይም በካሜራ)</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => startCamera('image1')} className="bg-[#3A281E] text-[#FB923C] text-xs font-bold px-3 py-2.5 rounded-xl border border-orange-500/30">📸 ካሜራ</button>
+                  <label className="flex-1 bg-[#1E232B] border border-white/10 text-gray-300 text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center cursor-pointer">
+                    🖼️ ከጋለሪ ምረጥ
+                    <input type="file" accept="image/*" onChange={e => handleGalleryUpload(e, 'image1')} className="hidden" />
+                  </label>
+                </div>
+                {newProd.image1 && <img src={newProd.image1} alt="" className="h-20 w-32 rounded-lg object-cover mt-1 border border-white/10" />}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400">ዋጋ (ETB) *</label>
+                  <input value={newProd.price} onChange={e => setNewProd({...newProd, price: e.target.value})} type="number" placeholder="650" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400">የዴሊቨሪ ዋጋ (ETB)</label>
+                  <input value={newProd.delivery_fee} onChange={e => setNewProd({...newProd, delivery_fee: e.target.value})} type="number" placeholder="100" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400">የሚሸጥበት ከተማ *</label>
+                  <input value={newProd.city} onChange={e => setNewProd({...newProd, city: e.target.value})} type="text" placeholder="አዲስ አበባ" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400">ልዩ ቦታ/አድራሻ *</label>
+                  <input value={newProd.location} onChange={e => setNewProd({...newProd, location: e.target.value})} type="text" placeholder="ቦሌ መድኃኔአለም" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                </div>
+              </div>
+
+              <button type="submit" className="w-full bg-gradient-to-r from-[#F97316] to-[#FB923C] text-black text-xs font-bold py-3.5 rounded-xl shadow-lg mt-2">
+                🚀 እቃውን ወደ ገበያ ጫን
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 3: PRODUCTS */}
+        {activeTab === 'products' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {products.map(p => (
+              <div key={p.id} className="bg-[#1E232B] p-5 rounded-3xl border border-white/5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-[#161A20] flex items-center justify-center overflow-hidden">
+                    {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <span className="text-xl">🛍️</span>}
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-white">{p.name}</h3>
+                    <p className="text-xs font-extrabold text-[#FB923C]">{p.price} ETB</p>
+                    <p className="text-[11px] text-gray-400">📍 {p.city || 'አ.አ'}, {p.location} • @{p.seller_username}</p>
+                  </div>
+                </div>
+                <button onClick={() => deleteProduct(p.id)} className="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2 rounded-xl">🗑️ አጥፋ</button>
+              </div>
+            ))}
           </div>
         )}
 
