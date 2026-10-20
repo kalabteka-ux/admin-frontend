@@ -221,7 +221,7 @@ export default function App() {
       {cameraOpen && (
         <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4">
           <div className="w-full max-w-sm bg-[#1E232B] rounded-3xl p-4 border border-orange-500/40 space-y-4 text-center shadow-2xl">
-            <h3 className="text-sm font-bold text-[#FB923C]">የእቃ ፎቶ ማንሻ ካሜራ</h3>
+            <h3 className="text-sm font-bold text-[#FB923C]">ካሜራ</h3>
             <div className="relative w-full h-64 bg-black rounded-2xl overflow-hidden border border-[#FB923C]">
               <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
             </div>
@@ -240,7 +240,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight">EOTC Market — Super Admin Dashboard</h1>
-            <p className="text-xs text-gray-400">Vendor KYC & Telebirr/Bank Sync Dashboard</p>
+            <p className="text-xs text-gray-400">Vendor KYC, Telebirr/Bank & Back ID Sync Dashboard</p>
           </div>
         </div>
 
@@ -270,7 +270,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* TAB 1: VENDORS KYC & BANK INFO DISPLAY */}
+        {/* TAB 1: VENDORS KYC & BANK INFO DISPLAY (Fixed Telebirr & Back ID) */}
         {activeTab === 'vendors' && (
           <div className="space-y-4">
             {vendors.length === 0 ? (
@@ -292,29 +292,39 @@ export default function App() {
                       📞 <strong>ስልክ፦</strong> {v.phone}
                     </p>
 
-                    {/* የቴሌብር እና የባንክ አካውንቶች ማሳያ */}
-                    <div className="bg-[#161A20] p-3 rounded-xl border border-orange-500/20 space-y-1 text-xs">
+                    {/* የቴሌብር እና የባንክ አካውንቶች በግልጽ እንዲታዩ */}
+                    <div className="bg-[#161A20] p-3.5 rounded-xl border border-orange-500/30 space-y-1.5 text-xs">
                       <p className="text-[#FB923C] font-bold">💳 የሻጭ የክፍያ አካውንቶች፦</p>
-                      <p>📱 <strong>ቴሌብር:</strong> <code className="text-orange-300">{v.telebirr_account || 'አልተመዘገበም'}</code></p>
-                      <p>🏦 <strong>CBE:</strong> <code className="text-orange-300">{v.cbe_account || v.account || 'አልተመዘገበም'}</code></p>
-                      <p>🏦 <strong>አቢሲኒያ:</strong> <code className="text-orange-300">{v.abyssinia_account || 'አልተመዘገበም'}</code></p>
+                      <p>📱 <strong>ቴሌብር (Telebirr):</strong> <code className="text-orange-300">{v.telebirr_account || 'አልተመዘገበም'}</code></p>
+                      <p>🏦 <strong>ንግድ ባንክ (CBE):</strong> <code className="text-orange-300">{v.cbe_account || v.account || 'አልተመዘገበም'}</code></p>
+                      <p>🏦 <strong>አቢሲኒያ (Abyssinia):</strong> <code className="text-orange-300">{v.abyssinia_account || 'አልተመዘገበም'}</code></p>
                     </div>
 
+                    {/* የፊት እና የኋላ መታወቂያ ፎቶዎች (የጀርባ ፎቶ ጥቁር እንዳይሆን በትክክል ተስተካክሏል) */}
                     <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-[#161A20] p-3 rounded-2xl border border-white/15">
                         <p className="text-[11px] text-[#FB923C] font-bold mb-2">🪪 መታወቂያ ፊት (Front)</p>
-                        {v.id_front_image && <img onClick={() => setSelectedImage(v.id_front_image)} src={v.id_front_image} alt="" className="h-32 w-full rounded-xl object-cover cursor-pointer shadow" />}
+                        {v.id_front_image ? (
+                          <img onClick={() => setSelectedImage(v.id_front_image)} src={v.id_front_image} alt="ID Front" className="h-36 w-full rounded-xl object-cover cursor-pointer shadow border border-white/10" />
+                        ) : (
+                          <p className="text-xs text-gray-500 py-8 text-center">ፎቶ የለም</p>
+                        )}
                       </div>
+
                       <div className="bg-[#161A20] p-3 rounded-2xl border border-white/15">
                         <p className="text-[11px] text-[#FB923C] font-bold mb-2">🪪 መታወቂያ ኋላ (Back)</p>
-                        {v.id_back_image && <img onClick={() => setSelectedImage(v.id_back_image)} src={v.id_back_image} alt="" className="h-32 w-full rounded-xl object-cover cursor-pointer shadow" />}
+                        {v.id_back_image ? (
+                          <img onClick={() => setSelectedImage(v.id_back_image)} src={v.id_back_image} alt="ID Back" className="h-36 w-full rounded-xl object-cover cursor-pointer shadow border border-white/10 bg-white/5" />
+                        ) : (
+                          <p className="text-xs text-gray-500 py-8 text-center">የኋላ ፎቶ የለም</p>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex gap-2 pt-2">
                       <input 
                         type="text" 
-                        placeholder="የማስተካከያ መልእክት (ለምሳሌ፦ ቴሌብር አካውንትዎ ትክክል አይደለም)..." 
+                        placeholder="የማስተካከያ መልእክት (ለምሳሌ፦ መታወቂያው ግልጽ አይደለም)..." 
                         value={feedbackInputs[v.id] || ''}
                         onChange={e => setFeedbackInputs({...feedbackInputs, [v.id]: e.target.value})}
                         className="flex-1 bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-2.5 border border-white/10"
