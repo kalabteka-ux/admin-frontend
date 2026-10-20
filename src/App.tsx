@@ -138,19 +138,25 @@ export default function App() {
     try { await fetch(`${API_BASE_URL}/vendors/${id}/approve`, { method: 'POST' }); } catch {}
   };
 
-  const sendVendorFeedback = async (id: number) => {
+  // 📩 የማስተካከያ መልእክት ለተጠቃሚው መላኪያ
+  const sendVendorFeedback = async (id: number, username: string) => {
     const message = feedbackInputs[id];
     if (!message) return alert("⚠️ እባክዎ የማስተካከያ መልእክት ይጻፉ!");
+    
     try {
-      await fetch(`${API_BASE_URL}/vendors/${id}/feedback`, {
+      const res = await fetch(`${API_BASE_URL}/vendors/${id}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ admin_feedback: message })
+        body: JSON.stringify({ admin_feedback: message, username })
       });
-      alert("📩 የማስተካከያ መልእክቱ ለተጠቃሚው ተልኳል!");
-      fetchAdminData();
+      if (res.ok) {
+        alert("📩 የማስተካከያ መልእክቱ በተሳካ ሁኔታ ተመዝግቧል! ተጠቃሚው ሚኒ አፑን ሲከፍት ያየዋል።");
+        fetchAdminData();
+      } else {
+        alert("⚠️ መላክ አልተቻለም።");
+      }
     } catch {
-      alert("⚠️ መላክ አልተቻለም።");
+      alert("⚠️ የሰርቨር ስህተት አጋጥሟል።");
     }
   };
 
@@ -240,7 +246,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight">EOTC Market — Super Admin Dashboard</h1>
-            <p className="text-xs text-gray-400">Vendor KYC, Telebirr/Bank & Back ID Sync Dashboard</p>
+            <p className="text-xs text-gray-400">Vendor KYC, Telebirr/Bank & Back ID Display Fix</p>
           </div>
         </div>
 
@@ -270,7 +276,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* TAB 1: VENDORS KYC & BANK INFO DISPLAY (Fixed Telebirr & Back ID) */}
+        {/* TAB 1: VENDORS KYC & BANK INFO DISPLAY (Fixed Back ID Black Background & Telebirr/Bank) */}
         {activeTab === 'vendors' && (
           <div className="space-y-4">
             {vendors.length === 0 ? (
@@ -292,7 +298,6 @@ export default function App() {
                       📞 <strong>ስልክ፦</strong> {v.phone}
                     </p>
 
-                    {/* የቴሌብር እና የባንክ አካውንቶች በግልጽ እንዲታዩ */}
                     <div className="bg-[#161A20] p-3.5 rounded-xl border border-orange-500/30 space-y-1.5 text-xs">
                       <p className="text-[#FB923C] font-bold">💳 የሻጭ የክፍያ አካውንቶች፦</p>
                       <p>📱 <strong>ቴሌብር (Telebirr):</strong> <code className="text-orange-300">{v.telebirr_account || 'አልተመዘገበም'}</code></p>
@@ -300,12 +305,14 @@ export default function App() {
                       <p>🏦 <strong>አቢሲኒያ (Abyssinia):</strong> <code className="text-orange-300">{v.abyssinia_account || 'አልተመዘገበም'}</code></p>
                     </div>
 
-                    {/* የፊት እና የኋላ መታወቂያ ፎቶዎች (የጀርባ ፎቶ ጥቁር እንዳይሆን በትክክል ተስተካክሏል) */}
+                    {/* የፊት እና የኋላ መታወቂያ ፎቶዎች (የጀርባ ፎቶ ጥቁር እንዳይሆን ከነጭ/ግራጫ መደብ ጋር) */}
                     <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-[#161A20] p-3 rounded-2xl border border-white/15">
                         <p className="text-[11px] text-[#FB923C] font-bold mb-2">🪪 መታወቂያ ፊት (Front)</p>
                         {v.id_front_image ? (
-                          <img onClick={() => setSelectedImage(v.id_front_image)} src={v.id_front_image} alt="ID Front" className="h-36 w-full rounded-xl object-cover cursor-pointer shadow border border-white/10" />
+                          <div className="h-36 w-full rounded-xl overflow-hidden bg-white/10 flex items-center justify-center border border-white/10">
+                            <img onClick={() => setSelectedImage(v.id_front_image)} src={v.id_front_image} alt="ID Front" className="h-full w-full object-contain cursor-pointer shadow" />
+                          </div>
                         ) : (
                           <p className="text-xs text-gray-500 py-8 text-center">ፎቶ የለም</p>
                         )}
@@ -314,7 +321,9 @@ export default function App() {
                       <div className="bg-[#161A20] p-3 rounded-2xl border border-white/15">
                         <p className="text-[11px] text-[#FB923C] font-bold mb-2">🪪 መታወቂያ ኋላ (Back)</p>
                         {v.id_back_image ? (
-                          <img onClick={() => setSelectedImage(v.id_back_image)} src={v.id_back_image} alt="ID Back" className="h-36 w-full rounded-xl object-cover cursor-pointer shadow border border-white/10 bg-white/5" />
+                          <div className="h-36 w-full rounded-xl overflow-hidden bg-white/10 flex items-center justify-center border border-white/10">
+                            <img onClick={() => setSelectedImage(v.id_back_image)} src={v.id_back_image} alt="ID Back" className="h-full w-full object-contain cursor-pointer shadow" />
+                          </div>
                         ) : (
                           <p className="text-xs text-gray-500 py-8 text-center">የኋላ ፎቶ የለም</p>
                         )}
@@ -329,7 +338,7 @@ export default function App() {
                         onChange={e => setFeedbackInputs({...feedbackInputs, [v.id]: e.target.value})}
                         className="flex-1 bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-2.5 border border-white/10"
                       />
-                      <button onClick={() => sendVendorFeedback(v.id)} className="bg-[#3A281E] text-[#FB923C] border border-orange-500/30 text-xs font-bold px-4 py-2.5 rounded-xl whitespace-nowrap">
+                      <button onClick={() => sendVendorFeedback(v.id, v.username)} className="bg-[#3A281E] text-[#FB923C] border border-orange-500/30 text-xs font-bold px-4 py-2.5 rounded-xl whitespace-nowrap">
                         📩 መልእክት ላክ
                       </button>
                     </div>
@@ -481,7 +490,7 @@ export default function App() {
       {selectedImage && (
         <div onClick={() => setSelectedImage(null)} className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer">
           <div className="max-w-3xl w-full text-center space-y-2">
-            <img src={selectedImage} alt="Zoomed ID" className="w-full max-h-[85vh] object-contain rounded-2xl border border-white/20" />
+            <img src={selectedImage} alt="Zoomed ID" className="w-full max-h-[85vh] object-contain rounded-2xl border border-white/20 bg-white/5" />
             <p className="text-xs text-gray-300">ለመዝጋት እዚህ ላይ ይጫኑ</p>
           </div>
         </div>
