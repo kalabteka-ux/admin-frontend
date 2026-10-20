@@ -2,12 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from './config';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'vendors' | 'products' | 'orders'>('vendors');
+  const [activeTab, setActiveTab] = useState<'vendors' | 'products' | 'orders' | 'publish'>('vendors');
   const [vendors, setVendors] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Admin Direct Product Publisher State
+  const [newProd, setNewProd] = useState({
+    name: '',
+    price: '',
+    category: 'መጽሐፍት',
+    condition: 'አዲስ',
+    location: 'አዲስ አበባ',
+    quantity: '1',
+    color: '',
+    image: '',
+    store_name: 'EOTC Official Store',
+    seller_username: 'admin'
+  });
 
   const fetchAdminData = async () => {
     try {
@@ -57,6 +71,40 @@ export default function App() {
     try { await fetch(`${API_BASE_URL}/products/${id}`, { method: 'DELETE' }); } catch {}
   };
 
+  // አድሚኑ በቀጥታ እቃዎችን በ POST መጫኛ
+  const handleAdminPublishProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProd.name || !newProd.price) {
+      return alert("⚠️ እባክዎ የእቃውን ስም እና ዋጋ ያስገቡ!");
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProd)
+      });
+      if (res.ok) {
+        alert("🎉 እቃው በተሳካ ሁኔታ ወደ ገበያ ተጭኗል!");
+        setNewProd({
+          name: '',
+          price: '',
+          category: 'መጽሐፍት',
+          condition: 'አዲስ',
+          location: 'አዲስ አበባ',
+          quantity: '1',
+          color: '',
+          image: '',
+          store_name: 'EOTC Official Store',
+          seller_username: 'admin'
+        });
+        fetchAdminData();
+        setActiveTab('products');
+      }
+    } catch {
+      alert("⚠️ እቃውን መጫን አልተቻለም። ሰርቨሩን ያረጋግጡ።");
+    }
+  };
+
   const approveOrder = async (id: number) => {
     setOrders(orders.map(o => o.id === id ? { ...o, status: 'ተረጋግጧል (Verified ✅)' } : o));
     try { await fetch(`${API_BASE_URL}/orders/${id}/approve`, { method: 'POST' }); } catch {}
@@ -76,11 +124,11 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight">EOTC Market — Super Admin Dashboard</h1>
-            <p className="text-xs text-gray-400">Vendor KYC (Front & Back ID Verification), Products & Escrow Control</p>
+            <p className="text-xs text-gray-400">Vendor KYC (Front & Back ID), Product Management & Direct Publisher</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className={`text-xs font-bold px-3.5 py-2 rounded-full border ${serverStatus === 'online' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>
             {serverStatus === 'online' ? '● Live Sync Active' : '⚠️ Connecting...'}
           </span>
@@ -98,8 +146,11 @@ export default function App() {
           <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'products' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
             📦 2. የእቃዎች ዝርዝር ({products.length})
           </button>
+          <button onClick={() => setActiveTab('publish')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'publish' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
+            ➕ 3. እቃ በቀጥታ መጫኛ (POST)
+          </button>
           <button onClick={() => setActiveTab('orders')} className={`px-5 py-2.5 rounded-full text-xs font-bold ${activeTab === 'orders' ? 'bg-[#3A281E] text-[#FB923C] border border-orange-500/30' : 'bg-[#1E232B] text-gray-400'}`}>
-            💳 3. የገዢዎች ትዕዛዝ ({orders.length})
+            💳 4. የገዢዎች ትዕዛዝ ({orders.length})
           </button>
         </div>
 
@@ -128,14 +179,14 @@ export default function App() {
                     <div className="pt-1 flex flex-wrap gap-4">
                       {v.id_front_image && (
                         <div>
-                          <p className="text-[11px] text-[#FB923C] font-semibold mb-1">🪪 መታወቂያ ፊት (Front)</p>
-                          <img onClick={() => setSelectedImage(v.id_front_image)} src={v.id_front_image} alt="ID Front" className="h-28 w-44 rounded-xl border border-orange-500/30 object-cover cursor-pointer hover:scale-105 transition shadow" />
+                          <p className="text-[11px] text-[#FB923C] font-semibold mb-1">🪪 መታወቂያ ፊት (Front ID)</p>
+                          <img onClick={() => setSelectedImage(v.id_front_image)} src={v.id_front_image} alt="ID Front" className="h-32 w-52 rounded-xl border border-orange-500/30 object-cover cursor-pointer hover:scale-105 transition shadow-lg" />
                         </div>
                       )}
                       {v.id_back_image && (
                         <div>
-                          <p className="text-[11px] text-[#FB923C] font-semibold mb-1">🪪 መታወቂያ ኋላ (Back)</p>
-                          <img onClick={() => setSelectedImage(v.id_back_image)} src={v.id_back_image} alt="ID Back" className="h-28 w-44 rounded-xl border border-orange-500/30 object-cover cursor-pointer hover:scale-105 transition shadow" />
+                          <p className="text-[11px] text-[#FB923C] font-semibold mb-1">🪪 መታወቂያ ኋላ (Back ID)</p>
+                          <img onClick={() => setSelectedImage(v.id_back_image)} src={v.id_back_image} alt="ID Back" className="h-32 w-52 rounded-xl border border-orange-500/30 object-cover cursor-pointer hover:scale-105 transition shadow-lg" />
                         </div>
                       )}
                     </div>
@@ -183,7 +234,59 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: ORDERS */}
+        {/* TAB 3: ADMIN DIRECT PRODUCT PUBLISHER (POST) */}
+        {activeTab === 'publish' && (
+          <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/5 max-w-xl mx-auto space-y-4 shadow-xl">
+            <h3 className="text-sm font-bold text-[#FB923C]">📦 እቃ በቀጥታ በአድሚን በኩል መጫኛ (Direct Publisher)</h3>
+            <form onSubmit={handleAdminPublishProduct} className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-400">የእቃው ስም *</label>
+                <input value={newProd.name} onChange={e => setNewProd({...newProd, name: e.target.value})} type="text" placeholder="ለምሳሌ፦ መጽሐፈ ሰዓታት" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400">ዋጋ (ETB) *</label>
+                  <input value={newProd.price} onChange={e => setNewProd({...newProd, price: e.target.value})} type="number" placeholder="650" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400">ምድብ (Category)</label>
+                  <select value={newProd.category} onChange={e => setNewProd({...newProd, category: e.target.value})} className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1">
+                    <option value="መጽሐፍት">መጽሐፍት</option>
+                    <option value="ንዋየ ቅድሳት">ንዋየ ቅድሳት</option>
+                    <option value="አልባሳት">አልባሳት</option>
+                    <option value="ሥዕላት">ሥዕላት</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400">ሁኔታ (Condition)</label>
+                  <select value={newProd.condition} onChange={e => setNewProd({...newProd, condition: e.target.value})} className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1">
+                    <option value="አዲስ">አዲስ</option>
+                    <option value="ያገለገለ">ያገለገለ</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400">አድራሻ (Location)</label>
+                  <input value={newProd.location} onChange={e => setNewProd({...newProd, location: e.target.value})} type="text" placeholder="አ.አ, ቦሌ" className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-400">የፎቶ URL (Image URL - አማራጭ)</label>
+                <input value={newProd.image} onChange={e => setNewProd({...newProd, image: e.target.value})} type="text" placeholder="https://..." className="w-full bg-[#161A20] text-white text-xs rounded-xl px-3.5 py-3 border border-white/10 mt-1" />
+              </div>
+
+              <button type="submit" className="w-full bg-gradient-to-r from-[#F97316] to-[#FB923C] text-black text-xs font-bold py-3.5 rounded-xl shadow-lg mt-2 active:scale-95 transition">
+                🚀 እቃውን ወደ ገበያ ጫን (Publish)
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 4: ORDERS */}
         {activeTab === 'orders' && (
           <div className="space-y-4">
             {orders.length === 0 ? (
@@ -215,8 +318,8 @@ export default function App() {
 
       {selectedImage && (
         <div onClick={() => setSelectedImage(null)} className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer">
-          <div className="max-w-2xl w-full text-center space-y-2">
-            <img src={selectedImage} alt="Zoomed ID" className="w-full max-h-[80vh] object-contain rounded-2xl border border-white/20" />
+          <div className="max-w-3xl w-full text-center space-y-2">
+            <img src={selectedImage} alt="Zoomed ID" className="w-full max-h-[85vh] object-contain rounded-2xl border border-white/20" />
             <p className="text-xs text-gray-300">ለመዝጋት እዚህ ላይ ይጫኑ</p>
           </div>
         </div>
