@@ -6,15 +6,17 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<any | null>(null);
 
-  // 💳 የአድሚን የባንክ እና ቴሌብር አካውንቶች ስቴት
+  // 💳 የአድሚን የባንክ እና ስልክ ቁጥር ስቴት
   const [adminBank, setAdminBank] = useState({
-    telebirr_account: '',
-    cbe_account: '',
-    abyssinia_account: ''
+    store_name: "EOTC Official Store",
+    phone: "0910573232",
+    telebirr_account: "0910573232",
+    cbe_account: "",
+    abyssinia_account: ""
   });
 
-  // 📦 በዳሽቦርድ ላይ እቃ ለመለጠፍ የሚረዱ ፎርም ስቴቶች (ከሚኒ አፕ ጋር የተመሳሰሉ)
   const [prodForm, setProdForm] = useState({
     id: null as number | null,
     name: '',
@@ -41,11 +43,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
-    // ከአስተዳዳሪው ሴቭ የተደረገ የባንክ መረጃ ካለ ከ localStorage መጫን
-    const savedBank = localStorage.getItem('admin_bank_accounts');
-    if (savedBank) {
-      try { setAdminBank(JSON.parse(savedBank)); } catch {}
-    }
   }, []);
 
   const fetchData = async () => {
@@ -54,11 +51,24 @@ export default function AdminDashboard() {
       if (pRes.ok) setProducts(await pRes.json());
       
       const vRes = await fetch(`${API_BASE_URL}/vendors`);
-      if (vRes.ok) setVendors(await vRes.json());
+      if (vRes.ok) {
+        const vData = await vRes.json();
+        setVendors(vData);
+        // አድሚኑ ከዚህ ቀደም ያስቀመጠው ቪንዶር መረጃ ካለ ጫን
+        const adminVendor = vData.find((v: any) => v.username?.toLowerCase() === 'admin');
+        if (adminVendor) {
+          setAdminBank({
+            store_name: adminVendor.store_name || "EOTC Official Store",
+            phone: adminVendor.phone || "0910573232",
+            telebirr_account: adminVendor.telebirr_account || "0910573232",
+            cbe_account: adminVendor.cbe_account || "",
+            abyssinia_account: adminVendor.abyssinia_account || ""
+          });
+        }
+      }
     } catch {}
   };
 
-  // 🖼️ ከፍተኛ ጥራት ያላቸውን ፎቶዎች ያለ ጥቁር መደብ የማቀናበሪያ ፈንክሽን
   const handleImageUpload = (file: File) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -83,15 +93,40 @@ export default function AdminDashboard() {
     reader.readAsDataURL(file);
   };
 
-  // 💾 አድሚኑ የባንክ አካውንቶቹን ሲያስቀምጥ
-  const handleSaveAdminBank = () => {
-    localStorage.setItem('admin_bank_accounts', JSON.stringify(adminBank));
-    showToast("✅ የባንክ እና ቴሌብር አካውንቶችዎ በትክክል ተቀምጠዋል!");
+  // 💾 አድሚኑ የራሱን ስልክ ቁጥር እና የባንክ አካውንት ሲያስቀምጥ በቀጥታ ወደ vendors ዳታቤዝ ይልካል
+  const handleSaveAdminBank = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/vendors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'admin',
+          store_name: adminBank.store_name,
+          phone: adminBank.phone,
+          telebirr_account: adminBank.telebirr_account,
+          cbe_account: adminBank.cbe_account,
+          abyssinia_account: adminBank.abyssinia_account,
+          id_front_image: 'admin_verified',
+          id_back_image: 'admin_verified'
+        })
+      });
+      if (res.ok) {
+        // በአድሚን በኩል አፍንጫው በቀጥታ እንዲጸድቅ
+        const allVendors = await (await fetch(`${API_BASE_URL}/vendors`)).json();
+        const adminV = allVendors.find((v: any) => v.username?.toLowerCase() === 'admin');
+        if (adminV) {
+          await fetch(`${API_BASE_URL}/vendors/${adminV.id}/approve`, { method: 'POST' });
+        }
+        showToast("✅ የአድሚን ስልክ ቁጥር እና የባንክ መረጃ ተቀምጧል!");
+        fetchData();
+      }
+    } catch {
+      showToast("⚠️ ማስቀመጥ አልተቻለም።");
+    }
   };
 
-  // 🚀 ዳሽቦርድ ላይ እቃ መለጠፊያ / ማስተካከያ
   const handleSaveProduct = async () => {
-    if (!prodForm.name.trim() || !prodForm.price || !prodForm.city.trim() || !prodForm.location.trim()) {
+    if (!prodForm.name.trim() || !prodForm.price || !prodForm.location.trim() || !prodForm.city.trim()) {
       return showToast("⚠️ እባክዎ የእቃ ስም፣ ዋጋ፣ ከተማ እና አድራሻ ይሙሉ!");
     }
 
@@ -100,7 +135,8 @@ export default function AdminDashboard() {
       ...prodForm,
       price: Number(prodForm.price),
       delivery_fee: finalDeliveryFee,
-      store_name: "EOTC Official Admin Store"
+      seller_username: 'admin',
+      store_name: adminBank.store_name || "EOTC Official Store"
     };
 
     try {
@@ -177,6 +213,34 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {viewingProduct && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1E232B] w-full max-w-md rounded-3xl p-6 border border-orange-500/40 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-sm font-bold text-[#FB923C]">📦 የእቃው ሙሉ ዝርዝር መረጃ</h3>
+              <button onClick={() => setViewingProduct(null)} className="text-gray-400 font-bold">✕</button>
+            </div>
+
+            <div className="h-48 rounded-2xl bg-[#161A20] overflow-hidden border border-white/10 flex items-center justify-center">
+              {viewingProduct.image ? <img src={viewingProduct.image} alt="" className="w-full h-full object-cover" /> : <span className="text-5xl">🛍️</span>}
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <p className="text-base font-extrabold text-white">🛍️ ርዕስ/ስም፦ {viewingProduct.name}</p>
+              <p className="text-sm font-bold text-[#FB923C]">💵 ዋጋ፦ {viewingProduct.price} ETB</p>
+              <p className="text-gray-300">📂 ምድብ፦ {viewingProduct.category} ({viewingProduct.book_sub_category || 'አጠቃላይ'})</p>
+              <p className="text-gray-300">✨ ሁኔታ፦ {viewingProduct.condition || 'አዲስ'}</p>
+              <p className="text-gray-300">🏙️ ከተማ እና ቦታ፦ {viewingProduct.city}, {viewingProduct.location}</p>
+              <p className="text-emerald-400 font-bold">🚚 ዴሊቨሪ፦ {Number(viewingProduct.delivery_fee || 0) > 0 ? `አለው (+${viewingProduct.delivery_fee} ETB)` : 'አልተዘጋጀም (Pickup only)'}</p>
+            </div>
+
+            <button onClick={() => setViewingProduct(null)} className="w-full bg-[#3A281E] text-[#FB923C] border border-orange-500/30 text-xs font-bold py-3 rounded-xl">
+              ዝጋ (Close)
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
         <div>
           <h1 className="text-xl font-extrabold text-[#FB923C]">⚙️ EOTC Market - Admin Dashboard</h1>
@@ -196,7 +260,6 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-4xl mx-auto space-y-6">
-        {/* 1. እቃዎች አስተዳደር እና ፖስት ማድረጊያ */}
         {activeTab === 'products' && (
           <div className="space-y-6">
             <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl">
@@ -225,25 +288,6 @@ export default function AdminDashboard() {
 
               <input value={prodForm.name} onChange={e => setProdForm({...prodForm, name: e.target.value})} type="text" placeholder="የእቃው ስም *" className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10" />
 
-              {prodForm.category === 'መጽሐፍት' && (
-                <div className="bg-[#161A20]/70 p-4 rounded-2xl border border-orange-500/30 space-y-3">
-                  <p className="text-xs font-bold text-[#FB923C]">📚 የመጽሐፍ ዝርዝር መሙያ</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input value={prodForm.author} onChange={e => setProdForm({...prodForm, author: e.target.value})} type="text" placeholder="የጸሐፊው ስም" className="w-full bg-[#1E232B] text-white text-xs rounded-xl p-3 border border-white/10" />
-                    <input value={prodForm.pub_year} onChange={e => setProdForm({...prodForm, pub_year: e.target.value})} type="text" placeholder="የህትመት ዘመን" className="w-full bg-[#1E232B] text-white text-xs rounded-xl p-3 border border-white/10" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input value={prodForm.publisher} onChange={e => setProdForm({...prodForm, publisher: e.target.value})} type="text" placeholder="አሳታሚ" className="w-full bg-[#1E232B] text-white text-xs rounded-xl p-3 border border-white/10" />
-                    <select value={prodForm.book_sub_category} onChange={e => setProdForm({...prodForm, book_sub_category: e.target.value})} className="w-full bg-[#1E232B] text-white text-xs rounded-xl p-3 border border-white/10">
-                      <option value="መንፈሳዊ">መንፈሳዊ</option>
-                      <option value="የትምህርት">የትምህርት</option>
-                      <option value="የሳይንስ">የሳይንስ</option>
-                      <option value="ታሪክ እና ሌሎች">ታሪክ እና ሌሎች</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
               <div className="grid grid-cols-2 gap-3">
                 <input value={prodForm.price} onChange={e => setProdForm({...prodForm, price: e.target.value})} type="number" placeholder="ዋጋ (ETB) *" className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10" />
                 <div className="bg-[#161A20] p-2 rounded-xl border border-white/10 flex items-center justify-between px-4">
@@ -262,8 +306,8 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 block mb-1">🖼️ የእቃው ፎቶ (ከማንኛውም ጥራት ጋር)</label>
-                <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0])} className="w-full bg-[#161A20] text-xs text-gray-300 rounded-xl p-3 border border-white/10 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#3A281E] file:text-[#FB923C]" />
+                <label className="text-xs text-gray-400 block mb-1">🖼️ የእቃው ፎቶ</label>
+                <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0])} className="w-full bg-[#161A20] text-xs text-gray-300 rounded-xl p-3 border border-white/10" />
               </div>
 
               {prodForm.image && <img src={prodForm.image} alt="" className="w-full h-36 object-cover rounded-xl border border-emerald-500/40" />}
@@ -273,22 +317,24 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* የተለጠፉ እቃዎች ዝርዝር */}
             <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/10 space-y-4">
               <h3 className="text-sm font-bold text-white">📋 በገበያ ላይ ያሉ እቃዎች ({products.length})</h3>
               <div className="space-y-2">
                 {products.map(p => (
                   <div key={p.id} className="bg-[#161A20] p-3 rounded-2xl flex items-center justify-between border border-white/5">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewingProduct(p)}>
                       <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center">
                         {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <span>🛍️</span>}
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-white">{p.name}</p>
+                        <p className="text-xs font-bold text-white underline decoration-[#FB923C]">{p.name}</p>
                         <p className="text-xs text-[#FB923C]">{p.price} ETB • {p.city}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      <button onClick={() => setViewingProduct(p)} className="bg-sky-500/10 text-sky-400 text-[10px] font-bold px-3 py-2 rounded-xl">
+                        🔍 ዝርዝር
+                      </button>
                       <button onClick={() => setProdForm({
                         id: p.id,
                         name: p.name || '',
@@ -320,7 +366,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* 2. የሻጮች KYC አስተዳደር */}
         {activeTab === 'vendors' && (
           <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/10 space-y-4">
             <h3 className="text-sm font-bold text-[#FB923C]">👥 የሻጮች ማመልከቻዎች (KYC)</h3>
@@ -350,28 +395,35 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* 3. የአድሚን የክፍያ አካውንቶች ማዋቀሪያ */}
         {activeTab === 'bank_settings' && (
           <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl">
-            <h3 className="text-sm font-bold text-[#FB923C]">💳 የእርስዎ (የአድሚን) የክፍያ አካውንቶች ማዋቀሪያ</h3>
-            <p className="text-xs text-gray-400">እዚህ ላይ የሚያስገቧቸው የቴሌብር እና የባንክ አካውንቶች በሲስተሙ ውስጥ አድሚን በሚለጥፋቸው እቃዎች ላይ እንደ መክፈያ አድራሻ ያገለግላሉ።</p>
+            <h3 className="text-sm font-bold text-[#FB923C]">💳 የአድሚን ስልክ ቁጥር እና የክፍያ አካውንቶች ማዋቀሪያ</h3>
+            <p className="text-xs text-gray-400">እዚህ ላይ የሚያስገቧቸው ስልክ ቁጥር (0910573232 ን ጨምሮ) እና የቴሌብር/ባንክ አካውንቶች አድሚን በሚለጥፋቸው እቃዎች ላይ እንደ መክፈያ አድራሻ ያገለግላሉ።</p>
 
             <div className="space-y-3 pt-2">
               <div>
-                <label className="text-[11px] text-gray-400">📱 የእርስዎ የቴሌብር ስልክ ቁጥር</label>
-                <input value={adminBank.telebirr_account} onChange={e => setAdminBank({...adminBank, telebirr_account: e.target.value})} type="tel" placeholder="09..." className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10 mt-1" />
+                <label className="text-[11px] text-gray-400">🏪 የሱቅ ስም</label>
+                <input value={adminBank.store_name} onChange={e => setAdminBank({...adminBank, store_name: e.target.value})} type="text" className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10 mt-1" />
+              </div>
+              <div>
+                <label className="text-[11px] text-gray-400">📞 የእርስዎ ስልክ ቁጥር (ለምሳሌ 0910573232)</label>
+                <input value={adminBank.phone} onChange={e => setAdminBank({...adminBank, phone: e.target.value})} type="tel" className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10 mt-1" />
+              </div>
+              <div>
+                <label className="text-[11px] text-gray-400">📱 የቴሌብር ስልክ ቁጥር</label>
+                <input value={adminBank.telebirr_account} onChange={e => setAdminBank({...adminBank, telebirr_account: e.target.value})} type="tel" className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10 mt-1" />
               </div>
               <div>
                 <label className="text-[11px] text-gray-400">🏦 የንግድ ባንክ (CBE) አካውንት ቁጥር</label>
-                <input value={adminBank.cbe_account} onChange={e => setAdminBank({...adminBank, cbe_account: e.target.value})} type="text" placeholder="1000..." className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10 mt-1" />
+                <input value={adminBank.cbe_account} onChange={e => setAdminBank({...adminBank, cbe_account: e.target.value})} type="text" className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10 mt-1" />
               </div>
               <div>
                 <label className="text-[11px] text-gray-400">🏦 የአቢሲኒያ ባንክ አካውንት ቁጥር</label>
-                <input value={adminBank.abyssinia_account} onChange={e => setAdminBank({...adminBank, abyssinia_account: e.target.value})} type="text" placeholder="Abyssinia account..." className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10 mt-1" />
+                <input value={adminBank.abyssinia_account} onChange={e => setAdminBank({...adminBank, abyssinia_account: e.target.value})} type="text" className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10 mt-1" />
               </div>
 
               <button onClick={handleSaveAdminBank} className="w-full bg-gradient-to-r from-[#F97316] to-[#FB923C] text-black font-bold text-xs py-4 rounded-xl shadow-lg mt-3">
-                💾 የባንክ እና ቴሌብር መረጃዎችን አስቀምጥ
+                💾 መረጃዎችን በቋሚነት አስቀምጥ
               </button>
             </div>
           </div>
