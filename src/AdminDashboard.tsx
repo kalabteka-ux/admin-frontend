@@ -210,6 +210,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* 🔍 የእቃ ዝርዝር መመልከቻ ፖፕአፕ (ለአድሚን እና ለነጋዴዎች እቃዎች) */}
       {viewingProduct && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#1E232B] w-full max-w-md rounded-3xl p-6 border border-orange-500/40 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -225,6 +226,7 @@ export default function AdminDashboard() {
             <div className="space-y-2 text-xs">
               <p className="text-base font-extrabold text-white">🛍️ ርዕስ/ስም፦ {viewingProduct.name}</p>
               <p className="text-sm font-bold text-[#FB923C]">💵 ዋጋ፦ {viewingProduct.price} ETB</p>
+              <p className="text-gray-300">👤 ሻጭ/መደብር፦ @{viewingProduct.seller_username} ({viewingProduct.store_name})</p>
               <p className="text-gray-300">📂 ምድብ፦ {viewingProduct.category} ({viewingProduct.book_sub_category || 'አጠቃላይ'})</p>
               <p className="text-gray-300">✨ ሁኔታ፦ {viewingProduct.condition || 'አዲስ'}</p>
               <p className="text-gray-300">🏙️ ከተማ እና ቦታ፦ {viewingProduct.city}, {viewingProduct.location}</p>
@@ -341,18 +343,20 @@ export default function AdminDashboard() {
               </button>
             </div>
 
+            {/* 📋 በገበያ ላይ ያሉ (የአድሚን እና የነጋዴዎች) እቃዎች ዝርዝር */}
             <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/10 space-y-4">
-              <h3 className="text-sm font-bold text-white">📋 በገበያ ላይ ያሉ እቃዎች ({products.length})</h3>
+              <h3 className="text-sm font-bold text-white">📋 በገበያ ላይ ያሉ ሁሉም እቃዎች (አድሚን እና ነጋዴዎች) — ({products.length})</h3>
               <div className="space-y-2">
                 {products.map(p => (
                   <div key={p.id} className="bg-[#161A20] p-3 rounded-2xl flex items-center justify-between border border-white/5">
                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewingProduct(p)}>
-                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0">
                         {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <span>🛍️</span>}
                       </div>
                       <div>
                         <p className="text-xs font-bold text-white underline decoration-[#FB923C]">{p.name}</p>
-                        <p className="text-xs text-[#FB923C]">{p.price} ETB • {p.city}</p>
+                        <p className="text-[10px] text-gray-400">👤 ሻጭ፦ @{p.seller_username || 'admin'}</p>
+                        <p className="text-xs text-[#FB923C] font-semibold">{p.price} ETB • {p.city}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
