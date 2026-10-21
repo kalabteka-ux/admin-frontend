@@ -7,9 +7,6 @@ export default function AdminDashboard() {
   const [vendors, setVendors] = useState<any[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
 
-  // 🔍 እቃዎችን ዝርዝር ከፍቶ ለማየት የሚረዳ ስቴት (Modal)
-  const [viewingProduct, setViewingProduct] = useState<any | null>(null);
-
   // 💳 የአድሚን የባንክ እና ቴሌብር አካውንቶች ስቴት
   const [adminBank, setAdminBank] = useState({
     telebirr_account: '',
@@ -17,7 +14,7 @@ export default function AdminDashboard() {
     abyssinia_account: ''
   });
 
-  // 📦 በዳሽቦርድ ላይ እቃ ለመለጠፍ የሚረዱ ፎርም ስቴቶች
+  // 📦 በዳሽቦርድ ላይ እቃ ለመለጠፍ የሚረዱ ፎርም ስቴቶች (ከሚኒ አፕ ጋር የተመሳሰሉ)
   const [prodForm, setProdForm] = useState({
     id: null as number | null,
     name: '',
@@ -44,6 +41,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
+    // ከአስተዳዳሪው ሴቭ የተደረገ የባንክ መረጃ ካለ ከ localStorage መጫን
     const savedBank = localStorage.getItem('admin_bank_accounts');
     if (savedBank) {
       try { setAdminBank(JSON.parse(savedBank)); } catch {}
@@ -93,7 +91,7 @@ export default function AdminDashboard() {
 
   // 🚀 ዳሽቦርድ ላይ እቃ መለጠፊያ / ማስተካከያ
   const handleSaveProduct = async () => {
-    if (!prodForm.name.trim() || !prodForm.price || !prodForm.location.trim() || !prodForm.city.trim()) {
+    if (!prodForm.name.trim() || !prodForm.price || !prodForm.city.trim() || !prodForm.location.trim()) {
       return showToast("⚠️ እባክዎ የእቃ ስም፣ ዋጋ፣ ከተማ እና አድራሻ ይሙሉ!");
     }
 
@@ -176,43 +174,6 @@ export default function AdminDashboard() {
       {notification && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#2C221E] border border-[#FB923C] text-white px-6 py-3 rounded-2xl shadow-2xl text-xs font-semibold">
           {notification}
-        </div>
-      )}
-
-      {/* 🔍 የእቃ ዝርዝር መመልከቻ ፖፕአፕ (Modal) */}
-      {viewingProduct && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1E232B] w-full max-w-md rounded-3xl p-6 border border-orange-500/40 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-sm font-bold text-[#FB923C]">📦 የእቃው ሙሉ ዝርዝር መረጃ</h3>
-              <button onClick={() => setViewingProduct(null)} className="text-gray-400 font-bold">✕</button>
-            </div>
-
-            <div className="h-48 rounded-2xl bg-[#161A20] overflow-hidden border border-white/10 flex items-center justify-center">
-              {viewingProduct.image ? <img src={viewingProduct.image} alt="" className="w-full h-full object-cover" /> : <span className="text-5xl">🛍️</span>}
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <p className="text-base font-extrabold text-white">🛍️ ርዕስ/ስም፦ {viewingProduct.name}</p>
-              <p className="text-sm font-bold text-[#FB923C]">💵 ዋጋ፦ {viewingProduct.price} ETB</p>
-              <p className="text-gray-300">📂 ምድብ፦ {viewingProduct.category} ({viewingProduct.book_sub_category || 'አጠቃላይ'})</p>
-              <p className="text-gray-300">✨ ሁኔታ፦ {viewingProduct.condition || 'አዲስ'}</p>
-              <p className="text-gray-300">🏙️ ከተማ እና ቦታ፦ {viewingProduct.city}, {viewingProduct.location}</p>
-              <p className="text-emerald-400 font-bold">🚚 ዴሊቨሪ፦ {Number(viewingProduct.delivery_fee || 0) > 0 ? `አለው (+${viewingProduct.delivery_fee} ETB)` : 'አልተዘጋጀም (Pickup only)'}</p>
-              
-              {viewingProduct.category === 'መጽሐፍት' && (
-                <div className="bg-[#161A20] p-3 rounded-xl border border-white/10 space-y-1 mt-2">
-                  <p>✍️ ጸሐፊ፦ {viewingProduct.author || 'ያልተጠቀሰ'}</p>
-                  <p>📅 የህትመት ዘመን፦ {viewingProduct.pub_year || 'ያልተጠቀሰ'}</p>
-                  <p>🏢 አሳታሚ፦ {viewingProduct.publisher || 'ያልተጠቀሰ'}</p>
-                </div>
-              )}
-            </div>
-
-            <button onClick={() => setViewingProduct(null)} className="w-full bg-[#3A281E] text-[#FB923C] border border-orange-500/30 text-xs font-bold py-3 rounded-xl">
-              ዝጋ (Close)
-            </button>
-          </div>
         </div>
       )}
 
@@ -312,25 +273,22 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* የተለጠፉ እቃዎች ዝርዝር (ከእነ ዝርዝር ማሳያ ጋር) */}
+            {/* የተለጠፉ እቃዎች ዝርዝር */}
             <div className="bg-[#1E232B] p-6 rounded-3xl border border-white/10 space-y-4">
               <h3 className="text-sm font-bold text-white">📋 በገበያ ላይ ያሉ እቃዎች ({products.length})</h3>
               <div className="space-y-2">
                 {products.map(p => (
                   <div key={p.id} className="bg-[#161A20] p-3 rounded-2xl flex items-center justify-between border border-white/5">
-                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewingProduct(p)}>
+                    <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center">
                         {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <span>🛍️</span>}
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-white underline decoration-[#FB923C]">{p.name}</p>
+                        <p className="text-xs font-bold text-white">{p.name}</p>
                         <p className="text-xs text-[#FB923C]">{p.price} ETB • {p.city}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => setViewingProduct(p)} className="bg-sky-500/10 text-sky-400 text-[10px] font-bold px-3 py-2 rounded-xl">
-                        🔍 ዝርዝር
-                      </button>
                       <button onClick={() => setProdForm({
                         id: p.id,
                         name: p.name || '',
