@@ -210,7 +210,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 🔍 የእቃ ዝርዝር መመልከቻ ፖፕአፕ */}
       {viewingProduct && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#1E232B] w-full max-w-md rounded-3xl p-6 border border-orange-500/40 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
