@@ -54,7 +54,6 @@ export default function AdminDashboard() {
       if (vRes.ok) {
         const vData = await vRes.json();
         setVendors(vData);
-        // አድሚኑ ከዚህ ቀደም ያስቀመጠው ቪንዶር መረጃ ካለ ጫን
         const adminVendor = vData.find((v: any) => v.username?.toLowerCase() === 'admin');
         if (adminVendor) {
           setAdminBank({
@@ -93,7 +92,6 @@ export default function AdminDashboard() {
     reader.readAsDataURL(file);
   };
 
-  // 💾 አድሚኑ የራሱን ስልክ ቁጥር እና የባንክ አካውንት ሲያስቀምጥ በቀጥታ ወደ vendors ዳታቤዝ ይልካል
   const handleSaveAdminBank = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/vendors`, {
@@ -111,7 +109,6 @@ export default function AdminDashboard() {
         })
       });
       if (res.ok) {
-        // በአድሚን በኩል አፍንጫው በቀጥታ እንዲጸድቅ
         const allVendors = await (await fetch(`${API_BASE_URL}/vendors`)).json();
         const adminV = allVendors.find((v: any) => v.username?.toLowerCase() === 'admin');
         if (adminV) {
@@ -213,6 +210,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* 🔍 የእቃ ዝርዝር መመልከቻ ፖፕአፕ */}
       {viewingProduct && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#1E232B] w-full max-w-md rounded-3xl p-6 border border-orange-500/40 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -232,6 +230,14 @@ export default function AdminDashboard() {
               <p className="text-gray-300">✨ ሁኔታ፦ {viewingProduct.condition || 'አዲስ'}</p>
               <p className="text-gray-300">🏙️ ከተማ እና ቦታ፦ {viewingProduct.city}, {viewingProduct.location}</p>
               <p className="text-emerald-400 font-bold">🚚 ዴሊቨሪ፦ {Number(viewingProduct.delivery_fee || 0) > 0 ? `አለው (+${viewingProduct.delivery_fee} ETB)` : 'አልተዘጋጀም (Pickup only)'}</p>
+
+              {viewingProduct.category === 'መጽሐፍት' && (
+                <div className="bg-[#161A20] p-3 rounded-xl border border-white/10 space-y-1 mt-2">
+                  <p>✍️ ጸሐፊ፦ {viewingProduct.author || 'ያልተጠቀሰ'}</p>
+                  <p>📅 የህትመት ዘመን፦ {viewingProduct.pub_year || 'ያልተጠቀሰ'}</p>
+                  <p>🏢 አሳታሚ፦ {viewingProduct.publisher || 'ያልተጠቀሰ'}</p>
+                </div>
+              )}
             </div>
 
             <button onClick={() => setViewingProduct(null)} className="w-full bg-[#3A281E] text-[#FB923C] border border-orange-500/30 text-xs font-bold py-3 rounded-xl">
@@ -287,6 +293,25 @@ export default function AdminDashboard() {
               </div>
 
               <input value={prodForm.name} onChange={e => setProdForm({...prodForm, name: e.target.value})} type="text" placeholder="የእቃው ስም *" className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10" />
+
+              {prodForm.category === 'መጽሐፍት' && (
+                <div className="bg-[#161A20]/70 p-4 rounded-2xl border border-orange-500/30 space-y-3">
+                  <p className="text-xs font-bold text-[#FB923C]">📚 የመጽሐፍ ዝርዝር መሙያ</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input value={prodForm.author} onChange={e => setProdForm({...prodForm, author: e.target.value})} type="text" placeholder="የጸሐፊው ስም" className="w-full bg-[#1E232B] text-white text-xs rounded-xl p-3 border border-white/10" />
+                    <input value={prodForm.pub_year} onChange={e => setProdForm({...prodForm, pub_year: e.target.value})} type="text" placeholder="የህትመት ዘመን" className="w-full bg-[#1E232B] text-white text-xs rounded-xl p-3 border border-white/10" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input value={prodForm.publisher} onChange={e => setProdForm({...prodForm, publisher: e.target.value})} type="text" placeholder="አሳታሚ" className="w-full bg-[#1E232B] text-white text-xs rounded-xl p-3 border border-white/10" />
+                    <select value={prodForm.book_sub_category} onChange={e => setProdForm({...prodForm, book_sub_category: e.target.value})} className="w-full bg-[#1E232B] text-white text-xs rounded-xl p-3 border border-white/10">
+                      <option value="መንፈሳዊ">መንፈሳዊ</option>
+                      <option value="የትምህርት">የትምህርት</option>
+                      <option value="የሳይንስ">የሳይንስ</option>
+                      <option value="ታሪክ እና ሌሎች">ታሪክ እና ሌሎች</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <input value={prodForm.price} onChange={e => setProdForm({...prodForm, price: e.target.value})} type="number" placeholder="ዋጋ (ETB) *" className="w-full bg-[#161A20] text-white text-xs rounded-xl p-3.5 border border-white/10" />
